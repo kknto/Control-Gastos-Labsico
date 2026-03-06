@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Control Financiero Pro - Solvencia</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body class="text-slate-800">
+
+    <div class="fixed inset-0 -z-10 bg-[#f8fafc] print-hide">
+        <div
+            class="absolute top-0 -left-4 w-72 h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-2xl opacity-30 animate-blob">
+        </div>
+        <div
+            class="absolute top-0 -right-4 w-72 h-72 bg-blue-300 rounded-full mix-blend-multiply filter blur-2xl opacity-30 animate-blob animation-delay-2000">
+        </div>
+        <div
+            class="absolute -bottom-8 left-20 w-72 h-72 bg-pink-300 rounded-full mix-blend-multiply filter blur-2xl opacity-30 animate-blob animation-delay-4000">
+        </div>
+    </div>
+
+    <div class="min-h-screen flex flex-col">
+        <!-- Header -->
+        <header
+            class="print-hide bg-white/80 backdrop-blur-md border-b border-slate-200/60 px-6 py-4 flex justify-between items-center sticky top-0 z-50 transition-all">
+            <div class="flex items-center gap-3">
+                <div
+                    class="bg-gradient-to-tr from-blue-600 to-indigo-600 p-2 rounded-xl text-white shadow-lg shadow-blue-500/30">
+                    <i data-lucide="shield-check"></i>
+                </div>
+                <h1 class="text-xl font-bold tracking-tight text-slate-900">Control de Solvencia Corporativa</h1>
+            </div>
+            <div class="flex items-center gap-4">
+                <span id="current-date"
+                    class="text-xs text-slate-500 font-bold uppercase tracking-wider bg-slate-100 px-3 py-1 rounded-full"></span>
+                <button onclick="exportData()"
+                    class="flex items-center gap-2 text-sm bg-white hover:bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-lg transition-all font-medium text-slate-700 shadow-sm hover:shadow">
+                    <i data-lucide="download" class="w-4 h-4"></i> Exportar
+                </button>
+            </div>
+        </header>
+
+        <nav class="print-hide bg-white/60 backdrop-blur border-b border-slate-200/60 px-6 flex gap-8 shadow-sm z-40">
+            <button onclick="showTab('landing')" id="btn-landing"
+                class="py-4 px-2 text-sm transition-all tab-active">LABSICORP</button>
+            <button onclick="showTab('dashboard')" id="btn-dashboard"
+                class="py-4 px-2 text-sm transition-all text-slate-500 hover:text-slate-700">Análisis de
+                Supervivencia</button>
+            <button onclick="showTab('registro')" id="btn-registro"
+                class="py-4 px-2 text-sm transition-all text-slate-500 hover:text-slate-700">Registro de Flujo</button>
+            <button onclick="showTab('services')" id="btn-services"
+                class="py-4 px-2 text-sm transition-all text-slate-500 hover:text-slate-700">Servicios Activos</button>
+
+            <button onclick="showTab('breakdown')" id="btn-breakdown"
+                class="py-4 px-2 text-sm transition-all text-slate-500 hover:text-slate-700">Desglose de Gastos</button>
+            <button onclick="showTab('config')" id="btn-config"
+                class="py-4 px-2 text-sm transition-all text-slate-500 hover:text-slate-700">Costos Fijos &
+                Impuestos</button>
+        </nav>
+
+        <main class="flex-1 p-6 max-w-7xl mx-auto w-full">
+
+            <!-- SECCIÓN: LANDING -->
+            <section id="tab-landing" class="flex flex-col items-center justify-center min-h-[60vh] space-y-8 fade-in">
+                <div class="relative group">
+                    <div
+                        class="absolute -inset-1 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200">
+                    </div>
+                    <div
+                        class="relative px-12 py-8 bg-white/40 backdrop-blur-xl border border-white/20 rounded-3xl shadow-2xl flex flex-col items-center">
+                        <div
+                            class="bg-gradient-to-tr from-blue-600 to-indigo-600 p-4 rounded-2xl text-white shadow-xl mb-6 animate-pulse">
+                            <i data-lucide="shield-check" class="w-12 h-12"></i>
+                        </div>
+                        <h1 class="text-7xl font-black tracking-tighter text-slate-900 drop-shadow-sm select-none">
+                            LABSICORP
+                        </h1>
+                        <p class="mt-4 text-slate-500 font-bold uppercase tracking-[0.3em] text-xs">Gestión de Solvencia
+                            Corporativa</p>
+                    </div>
+                </div>
+
+                <div class="flex gap-4 animate-bounce">
+                    <button onclick="showTab('dashboard')"
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-2xl font-black text-sm uppercase tracking-wider shadow-lg shadow-blue-500/30 transition-all active:scale-95">
+                        Empezar Análisis
+                    </button>
+                </div>
+            </section>
+
+            <!-- SECCIÓN: DASHBOARD -->
+            <section id="tab-dashboard" class="hidden space-y-6">
+                <!-- Dashboard Controls -->
+                <div class="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between print-hide">
+                    <div class="flex flex-wrap items-center gap-4">
+                        <div class="flex items-center gap-2">
+                            <span class="text-[10px] font-black text-slate-500 uppercase">Rango</span>
+                            <select id="dashboard-range"
+                                class="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs font-bold text-slate-700">
+                                <option value="ytd">YTD</option>
+                                <option value="q1">Q1</option>
+                                <option value="last6">Ultimos 6 meses</option>
+                                <option value="last12">Ultimos 12 meses</option>
+                            </select>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-[10px] font-black text-slate-500 uppercase">Vista</span>
+                            <select id="dashboard-view"
+                                class="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs font-bold text-slate-700">
+                                <option value="monthly">Mensual</option>
+                                <option value="weekly">Semanal</option>
+                            </select>
+                        </div>
+                        <span id="dashboard-range-label"
+                            class="text-xs text-slate-500 font-semibold bg-slate-100 px-2 py-1 rounded-full"></span>
+                    </div>
+                    <button onclick="exportDashboardPdf()"
+                        class="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider shadow-sm">
+                        Exportar PDF
+                    </button>
+                </div>
+
+                <div id="runway-alert"
+                    class="hidden bg-rose-50 text-rose-700 border border-rose-200 px-4 py-3 rounded-xl text-sm font-bold">
+                    Alerta: runway bajo.
+                </div>
+                <!-- Solvency Indicator Card -->
+                <div id="solvency-alert-card"
+                    class="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm flex flex-col md:flex-row items-center justify-between gap-6 overflow-hidden relative">
+                    <div class="flex items-center gap-5 z-10">
+                        <div id="solvency-icon-bg" class="p-4 rounded-full bg-emerald-100 text-emerald-600">
+                            <i data-lucide="timer" class="w-8 h-8"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Pista de Efectivo
+                                (Weeks)</p>
+                            <h2 id="kpi-runway-weeks" class="text-4xl font-black text-slate-900">0.0 Semanas</h2>
+                            <p id="solvency-desc" class="text-sm text-slate-500 mt-1">Con el saldo actual cubres la
+                                operación inmediata.</p>
+                        </div>
+                    </div>
+                    <div class="text-center md:text-right z-10">
+                        <p class="text-xs font-bold text-slate-400 uppercase mb-1">Costo Operativo Semanal Total</p>
+                        <h4 id="kpi-weekly-burn" class="text-xl font-bold text-slate-800">$0.00</h4>
+                        <div id="solvency-status-badge"
+                            class="mt-2 inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700">
+                            Estado: Óptimo
+                        </div>
+                    </div>
+                </div>
+
+                <!-- YTD KPIs -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="glass-card p-5 rounded-2xl shadow-sm border-l-4 border-emerald-500">
+                        <p class="text-xs font-semibold text-slate-500 uppercase mb-1">Ingresos YTD</p>
+                        <h3 id="kpi-ytd-income" class="text-2xl font-bold text-emerald-600">$0.00</h3>
+                        <p id="kpi-yoy-income" class="text-[10px] text-slate-400"></p>
+                    </div>
+                    <div class="glass-card p-5 rounded-2xl shadow-sm border-l-4 border-rose-500">
+                        <p class="text-xs font-semibold text-slate-500 uppercase mb-1">Egresos YTD</p>
+                        <h3 id="kpi-ytd-expense" class="text-2xl font-bold text-rose-600">$0.00</h3>
+                        <p id="kpi-yoy-expense" class="text-[10px] text-slate-400"></p>
+                    </div>
+                    <div class="glass-card p-5 rounded-2xl shadow-sm border-l-4 border-blue-500">
+                        <p class="text-xs font-semibold text-slate-500 uppercase mb-1">Margen YTD</p>
+                        <h3 id="kpi-ytd-margin" class="text-2xl font-bold text-blue-600">0%</h3>
+                        <p id="kpi-yoy-margin" class="text-[10px] text-slate-400"></p>
+                    </div>
+                </div>
+
+                <!-- KPI Cards Secundarios -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="glass-card p-5 rounded-2xl shadow-sm border-l-4 border-blue-500">
+                        <p class="text-xs font-semibold text-slate-500 uppercase mb-1">Efectivo Disponible</p>
+                        <h3 id="kpi-balance" class="text-2xl font-bold text-slate-900">$0.00</h3>
+                    </div>
+                    <div class="glass-card p-5 rounded-2xl shadow-sm border-l-4 border-rose-500">
+                        <p class="text-xs font-semibold text-slate-500 uppercase mb-1">Compromiso Mensual Fijo</p>
+                        <h3 id="kpi-fixed-monthly" class="text-2xl font-bold text-rose-600">$0.00</h3>
+                        <p class="text-[10px] text-slate-400">Incluye: Renta, Vehículos, Servicios e Impuestos.</p>
+                    </div>
+                    <div class="glass-card p-5 rounded-2xl shadow-sm border-l-4 border-emerald-500">
+                        <p class="text-xs font-semibold text-slate-500 uppercase mb-1">Margen Operativo</p>
+                        <h3 id="kpi-safety-margin" class="text-2xl font-bold text-emerald-600">0%</h3>
+                    </div>
+                </div>
+
+                <!-- Pendientes -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="glass-card p-5 rounded-2xl shadow-sm border-l-4 border-amber-500">
+                        <p class="text-xs font-semibold text-slate-500 uppercase mb-1">Ingresos Pendientes</p>
+                        <h3 id="kpi-pending-income" class="text-2xl font-bold text-amber-600">$0.00</h3>
+                    </div>
+                    <div class="glass-card p-5 rounded-2xl shadow-sm border-l-4 border-amber-500">
+                        <p class="text-xs font-semibold text-slate-500 uppercase mb-1">Egresos Pendientes</p>
+                        <h3 id="kpi-pending-expense" class="text-2xl font-bold text-amber-600">$0.00</h3>
+                    </div>
+                    <div class="glass-card p-5 rounded-2xl shadow-sm border-l-4 border-indigo-500">
+                        <p class="text-xs font-semibold text-slate-500 uppercase mb-1">Servicios por Cobrar (Mes)</p>
+                        <h3 id="kpi-pending-services" class="text-2xl font-bold text-indigo-600">$0.00</h3>
+                    </div>
+                </div>
+
+                <!-- Charts Area -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="glass-card p-6 rounded-2xl shadow-sm flex flex-col">
+                        <h4 class="font-bold text-slate-800 mb-6 flex items-center gap-2">
+                            <i data-lucide="layout-dashboard" class="w-4 h-4 text-blue-500"></i> Flujo de Caja
+                        </h4>
+                        <div class="flex-1 relative min-h-[300px]">
+                            <canvas id="barChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="glass-card p-6 rounded-2xl shadow-sm">
+                        <h4 class="font-bold text-slate-800 mb-6 flex items-center gap-2">
+                            <i data-lucide="pie-chart" class="w-4 h-4 text-rose-500"></i> Distribución de Costos Fijos
+                        </h4>
+                        <div class="h-64 flex justify-center">
+                            <canvas id="fixedCostChart"></canvas>
+                        </div>
+                        <div class="mt-6 grid grid-cols-2 gap-4">
+                            <div class="space-y-1">
+                                <span class="text-[10px] font-black text-slate-400 uppercase">Nómina (Sem)</span>
+                                <p id="label-payroll" class="text-sm font-bold text-slate-800"></p>
+                            </div>
+                            <div class="space-y-1">
+                                <span class="text-[10px] font-black text-slate-400 uppercase">Impuestos (Mes)</span>
+                                <p id="label-taxes" class="text-sm font-bold text-rose-600"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Projection + Category Breakdown -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="glass-card p-6 rounded-2xl shadow-sm flex flex-col">
+                        <h4 class="font-bold text-slate-800 mb-3 flex items-center gap-2">
+                            <i data-lucide="activity" class="w-4 h-4 text-blue-500"></i> Proyeccion de Saldo (8 semanas)
+                        </h4>
+                        <p id="projection-assumption" class="text-[10px] text-slate-400 mb-4"></p>
+                        <div class="flex-1 relative min-h-[240px]">
+                            <canvas id="projectionChart"></canvas>
+                        </div>
+                        <div id="projection-list" class="mt-4 space-y-1"></div>
+                    </div>
+                    <div class="glass-card p-6 rounded-2xl shadow-sm">
+                        <h4 class="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                            <i data-lucide="list-ordered" class="w-4 h-4 text-rose-500"></i> Top Categorias vs
+                            Presupuesto
+                        </h4>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-sm">
+                                <thead class="bg-slate-50">
+                                    <tr>
+                                        <th class="px-4 py-2 text-slate-500 uppercase text-[10px] font-black">Categoria
+                                        </th>
+                                        <th
+                                            class="px-4 py-2 text-slate-500 uppercase text-[10px] font-black text-right">
+                                            Actual</th>
+                                        <th
+                                            class="px-4 py-2 text-slate-500 uppercase text-[10px] font-black text-right">
+                                            Presupuesto</th>
+                                        <th
+                                            class="px-4 py-2 text-slate-500 uppercase text-[10px] font-black text-right">
+                                            Var</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="top-categories-body"></tbody>
+                            </table>
+                        </div>
+                        <p class="mt-3 text-[10px] text-slate-400">Presupuesto estimado con costos fijos.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECCIÓN: REGISTRO -->
+            <section id="tab-registro" class="hidden space-y-6">
+                <div class="glass-card p-6 rounded-2xl shadow-sm">
+                    <div class="flex justify-between items-center mb-4">
+                        <h4 class="font-bold text-slate-800">Registro de Movimientos</h4>
+                        <div class="flex gap-2">
+                            <button type="button" onclick="openIncomeCsvImport()"
+                                class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition-all">
+                                <i data-lucide="file-up" class="w-4 h-4"></i> Importar Ingresos (CSV)
+                            </button>
+                            <input type="file" id="income-csv-file" class="hidden" accept=".csv">
+
+                            <button type="button" onclick="openExpenseCsvImport()"
+                                class="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition-all">
+                                <i data-lucide="file-down" class="w-4 h-4"></i> Importar Egresos (CSV)
+                            </button>
+                            <input type="file" id="expense-csv-file" class="hidden" accept=".csv,text/csv" />
+                        </div>
+                    </div>
+                    <form id="entryForm" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-black text-slate-500 uppercase">Fecha</label>
+                            <input type="date" id="input-fecha" required
+                                class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-black text-slate-500 uppercase">Categoría</label>
+                            <select id="input-categoria" required
+                                class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm"></select>
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-black text-slate-500 uppercase">Concepto</label>
+                            <input type="text" id="input-concepto" placeholder="Ej: Pago IVA Enero" required
+                                class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-black text-slate-500 uppercase">Sub Total ($)</label>
+                            <input type="number" id="input-subtotal" placeholder="0.00" step="0.01"
+                                class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm font-semibold">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-black text-slate-500 uppercase">IVA ($)</label>
+                            <input type="number" id="input-iva" placeholder="0.00" step="0.01"
+                                class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm font-semibold">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-black text-slate-500 uppercase">Total ($)</label>
+                            <input type="number" id="input-monto" placeholder="0.00" step="0.01" required
+                                class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm font-bold">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-black text-slate-500 uppercase">Tipo</label>
+                            <select id="input-tipo"
+                                class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm">
+                                <option value="ingreso">Ingreso (+)</option>
+                                <option value="egreso">Egreso (-)</option>
+                            </select>
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-black text-slate-500 uppercase">Estatus</label>
+                            <select id="input-estatus"
+                                class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm">
+                                <option>Pagado</option>
+                                <option>Pendiente</option>
+                            </select>
+                        </div>
+                        <div></div>
+                        <div class="flex gap-2">
+                            <button type="button" id="btn-cancel-edit" onclick="cancelEdit()"
+                                class="hidden bg-slate-200 hover:bg-slate-300 text-slate-600 font-bold py-2 px-4 rounded-lg transition-all text-sm">
+                                Cancelar
+                            </button>
+                            <button type="submit" id="btn-submit"
+                                class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded-lg transition-all text-sm flex items-center justify-center gap-2 shadow-lg shadow-blue-200">
+                                <i data-lucide="plus-circle" class="w-4 h-4"></i> <span id="btn-text">Guardar
+                                    Registro</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Filtros de Fecha -->
+                <div class="glass-card p-6 rounded-2xl shadow-sm">
+                    <div class="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
+                        <div class="flex-1">
+                            <h5 class="text-xs font-black text-slate-500 uppercase mb-3">Filtros Rápidos</h5>
+                            <div class="flex flex-wrap gap-2">
+                                <button id="btn-filter-week" onclick="filterThisWeek()"
+                                    class="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-lg text-xs transition-colors border border-blue-200">
+                                    <i data-lucide="calendar" class="w-3 h-3 inline"></i> Esta Semana
+                                </button>
+                                <button id="btn-filter-last-week" onclick="filterLastWeek()"
+                                    class="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold rounded-lg text-xs transition-colors border border-slate-200">
+                                    <i data-lucide="calendar-minus" class="w-3 h-3 inline"></i> Semana Pasada
+                                </button>
+                                <button id="btn-filter-month" onclick="filterThisMonth()"
+                                    class="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold rounded-lg text-xs transition-colors border border-slate-200">
+                                    <i data-lucide="calendar-range" class="w-3 h-3 inline"></i> Este Mes
+                                </button>
+                                <button id="btn-filter-clear" onclick="clearDateFilter()"
+                                    class="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-500 font-bold rounded-lg text-xs transition-colors border border-slate-200">
+                                    <i data-lucide="x-circle" class="w-3 h-3 inline"></i> Limpiar
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="border-l border-slate-200 pl-4">
+                            <h5 class="text-xs font-black text-slate-500 uppercase mb-3">Rango Personalizado</h5>
+                            <div class="flex gap-2 items-end">
+                                <div>
+                                    <label class="text-[9px] font-black text-slate-400 uppercase">Desde</label>
+                                    <input type="date" id="filter-start"
+                                        class="w-32 bg-slate-50 border border-slate-200 rounded-lg p-1.5 text-xs">
+                                </div>
+                                <div>
+                                    <label class="text-[9px] font-black text-slate-400 uppercase">Hasta</label>
+                                    <input type="date" id="filter-end"
+                                        class="w-32 bg-slate-50 border border-slate-200 rounded-lg p-1.5 text-xs">
+                                </div>
+                                <button onclick="applyCustomFilter()"
+                                    class="px-3 py-1.5 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-lg text-xs transition-colors">
+                                    Aplicar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Resumen Filtrado -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                    <div class="glass-card p-4 rounded-2xl shadow-sm border-r-4 border-emerald-500">
+                        <p class="text-[10px] font-black text-slate-500 uppercase mb-1">💰 Ingresos</p>
+                        <h3 id="filtered-income" class="text-xl font-black text-emerald-600">$0.00</h3>
+                    </div>
+                    <div class="glass-card p-4 rounded-2xl shadow-sm border-r-4 border-rose-500">
+                        <p class="text-[10px] font-black text-slate-500 uppercase mb-1">💸 Egresos</p>
+                        <h3 id="filtered-expense" class="text-xl font-black text-rose-600">$0.00</h3>
+                    </div>
+                    <div class="glass-card p-4 rounded-2xl shadow-sm border-r-4 border-indigo-500">
+                        <p class="text-[10px] font-black text-slate-500 uppercase mb-1">🏦 Subtotal</p>
+                        <h3 id="filtered-subtotal" class="text-xl font-black text-indigo-600">$0.00</h3>
+                    </div>
+                    <div class="glass-card p-4 rounded-2xl shadow-sm border-r-4 border-amber-500">
+                        <p class="text-[10px] font-black text-slate-500 uppercase mb-1">📜 IVA</p>
+                        <h3 id="filtered-iva" class="text-xl font-black text-amber-600">$0.00</h3>
+                    </div>
+                    <div class="glass-card p-4 rounded-2xl shadow-sm border-r-4 border-blue-500">
+                        <p class="text-[10px] font-black text-slate-500 uppercase mb-1">📊 Balance Neto</p>
+                        <h3 id="filtered-balance" class="text-xl font-black text-blue-600">$0.00</h3>
+                    </div>
+                </div>
+
+                <div class="glass-card rounded-2xl shadow-sm overflow-hidden">
+                    <div
+                        class="px-6 py-4 border-b border-slate-100 flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center bg-white">
+                        <h4 class="font-bold text-slate-800">Historial Reciente</h4>
+                        <div class="flex flex-wrap items-center gap-3">
+                            <button id="btn-delete-bulk" onclick="deleteBatchTransactions()"
+                                class="hidden px-3 py-1 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-lg text-xs font-bold transition-all flex items-center gap-1">
+                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Eliminar (<span
+                                    id="selected-count">0</span>)
+                            </button>
+                            <span id="filter-indicator" class="text-xs text-slate-500 italic hidden"></span>
+                            <div class="flex items-center gap-2">
+                                <span class="text-[10px] font-black text-slate-500 uppercase">Agrupar</span>
+                                <select id="group-by" onchange="setTableGrouping(this.value)"
+                                    class="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs font-bold text-slate-700">
+                                    <option value="none">Sin agrupar</option>
+                                    <option value="category">Por categoria</option>
+                                    <option value="type">Por ingreso/egreso</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto max-h-[400px]">
+                        <table class="w-full text-left text-sm">
+                            <thead class="bg-slate-50 sticky top-0">
+                                <tr>
+                                    <th class="px-6 py-3 w-4">
+                                        <input type="checkbox" id="select-all-tx"
+                                            onchange="toggleSelectAllTransactions(this.checked)"
+                                            class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500">
+                                    </th>
+                                    <th class="px-2 py-3 text-slate-500 uppercase text-[10px] font-black">Fecha</th>
+                                    <th class="px-6 py-3 text-slate-500 uppercase text-[10px] font-black">Categoría</th>
+                                    <th class="px-6 py-3 text-slate-500 uppercase text-[10px] font-black">Concepto</th>
+                                    <th class="px-6 py-3 text-slate-500 uppercase text-[10px] font-black text-right">
+                                        Monto</th>
+                                    <th class="px-6 py-3 text-slate-500 uppercase text-[10px] font-black text-center">
+                                        Estado</th>
+                                    <th class="px-6 py-3 text-slate-500 uppercase text-[10px] font-black text-right">
+                                        Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-body" class="divide-y divide-slate-100 bg-white"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECCIÓN: SERVICIOS ACTIVOS -->
+            <section id="tab-services" class="hidden space-y-6">
+                <!-- Dashboard de Servicios -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="glass-card p-6 rounded-2xl shadow-sm border-l-4 border-indigo-500">
+                        <div class="flex items-center gap-4">
+                            <div class="p-3 bg-indigo-100 text-indigo-600 rounded-full">
+                                <i data-lucide="shield" class="w-6 h-6"></i>
+                            </div>
+                            <div>
+                                <p class="text-xs font-semibold text-slate-500 uppercase mb-1">Total Igualas (Semestral)
+                                </p>
+                                <h3 id="svc-total-retainers" class="text-2xl font-bold text-slate-900">$0.00</h3>
+                                <p class="text-[10px] text-slate-400">Ingreso recurrente "seguro"</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="glass-card p-6 rounded-2xl shadow-sm border-l-4 border-amber-500">
+                        <div class="flex items-center gap-4">
+                            <div class="p-3 bg-amber-100 text-amber-600 rounded-full">
+                                <i data-lucide="briefcase" class="w-6 h-6"></i>
+                            </div>
+                            <div>
+                                <p class="text-xs font-semibold text-slate-500 uppercase mb-1">Proyectos Pendientes</p>
+                                <h3 id="svc-pending-projects" class="text-2xl font-bold text-slate-900">$0.00</h3>
+                                <p class="text-[10px] text-slate-400">Ingreso probable por cobrar</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tabla de Servicios -->
+                <div class="glass-card rounded-2xl shadow-sm overflow-hidden">
+                    <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-white">
+                        <h4 class="font-bold text-slate-800 flex items-center gap-2">
+                            <i data-lucide="users" class="w-5 h-5 text-indigo-500"></i> Cartera de Clientes
+                        </h4>
+                        <button onclick="openServiceModal()"
+                            class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all">
+                            <i data-lucide="plus" class="w-4 h-4"></i> Nuevo Servicio
+                        </button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm">
+                            <thead class="bg-slate-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-slate-500 uppercase text-[10px] font-black">Cliente</th>
+                                    <th class="px-6 py-3 text-slate-500 uppercase text-[10px] font-black">Tipo</th>
+                                    <th class="px-6 py-3 text-slate-500 uppercase text-[10px] font-black text-right">
+                                        Monto</th>
+                                    <th class="px-6 py-3 text-slate-500 uppercase text-[10px] font-black text-center">
+                                        Próximo Cobro</th>
+                                    <th class="px-6 py-3 text-slate-500 uppercase text-[10px] font-black text-center">
+                                        Estado</th>
+                                    <th class="px-6 py-3 text-slate-500 uppercase text-[10px] font-black text-right">
+                                        Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="services-table-body" class="divide-y divide-slate-100 bg-white">
+                                <!-- Dynamic Content -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Modal Create/Edit Service -->
+            <div id="service-modal" class="fixed inset-0 z-[60] hidden">
+                <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onclick="closeServiceModal()"></div>
+                <div
+                    class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-2xl shadow-2xl p-6 animate-blob">
+                    <h3 id="modal-title-service" class="text-lg font-bold text-slate-800 mb-4">Nuevo Servicio</h3>
+                    <form id="serviceForm" class="space-y-4">
+                        <input type="hidden" id="svc-id">
+                        <div>
+                            <label class="text-[10px] font-black text-slate-500 uppercase">Cliente / Empresa</label>
+                            <input type="text" id="svc-client" required
+                                class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm">
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="text-[10px] font-black text-slate-500 uppercase">Tipo Servicio</label>
+                                <select id="svc-type" required onchange="toggleServiceFields()"
+                                    class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm">
+                                    <option value="iguala">Iguala Mensual</option>
+                                    <option value="proyecto">Proyecto Único</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-black text-slate-500 uppercase">Monto ($)</label>
+                                <input type="number" id="svc-amount" required step="0.01"
+                                    class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm font-bold">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-black text-slate-500 uppercase">Descripción</label>
+                            <input type="text" id="svc-desc" placeholder="Detalles del servicio..."
+                                class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm">
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="text-[10px] font-black text-slate-500 uppercase">Próximo Cobro</label>
+                                <input type="date" id="svc-date" required
+                                    class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm">
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-black text-slate-500 uppercase">Estado Inicial</label>
+                                <select id="svc-status"
+                                    class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm">
+                                    <option value="pendiente">Pendiente</option>
+                                    <option value="pagado">Pagado</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="flex gap-3 pt-4">
+                            <button type="button" onclick="closeServiceModal()"
+                                class="flex-1 py-2 px-4 bg-slate-100 text-slate-600 font-bold rounded-lg hover:bg-slate-200 transition-colors">Cancelar</button>
+                            <button type="submit"
+                                class="flex-1 py-2 px-4 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition-colors">Guardar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Modal Register Payment (Cobrar) -->
+            <div id="payment-modal" class="fixed inset-0 z-[70] hidden">
+                <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onclick="closePaymentModal()"></div>
+                <div
+                    class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-sm bg-white rounded-2xl shadow-2xl p-6 animate-blob">
+                    <div class="flex items-center gap-3 mb-4 text-emerald-600">
+                        <div class="p-2 bg-emerald-100 rounded-full"><i data-lucide="badge-dollar-sign"
+                                class="w-6 h-6"></i></div>
+                        <h3 class="text-lg font-bold text-slate-800">Registrar Cobro</h3>
+                    </div>
+
+                    <form id="paymentForm" class="space-y-4">
+                        <input type="hidden" id="pay-svc-id">
+
+                        <div class="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                            <p class="text-[10px] font-black text-slate-400 uppercase">Cliente</p>
+                            <p id="pay-client-name" class="font-bold text-slate-700 text-sm">Empresa S.A.</p>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="text-[10px] font-black text-slate-500 uppercase">Monto Base</label>
+                                <input type="number" id="pay-base" readonly
+                                    class="w-full bg-slate-100 border border-slate-200 rounded-lg p-2 text-sm font-bold text-slate-500">
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-black text-emerald-600 uppercase">Extras / H.E.</label>
+                                <input type="number" id="pay-extra" step="0.01" value="0"
+                                    oninput="calculatePaymentTotal()"
+                                    class="w-full bg-emerald-50 border border-emerald-200 rounded-lg p-2 text-sm font-bold text-emerald-700">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="text-[10px] font-black text-slate-500 uppercase">Notas Adicionales</label>
+                            <input type="text" id="pay-notes" placeholder="Ej: 5 Horas Extra"
+                                class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm">
+                        </div>
+
+                        <div class="pt-4 border-t border-slate-100 flex justify-between items-end">
+                            <div class="text-xs text-slate-400 font-bold">Total a Cobrar</div>
+                            <div id="pay-total-display" class="text-2xl font-black text-slate-800">$0.00</div>
+                        </div>
+
+                        <div class="flex gap-3 pt-2">
+                            <button type="button" onclick="closePaymentModal()"
+                                class="flex-1 py-2 px-4 bg-slate-100 text-slate-600 font-bold rounded-lg hover:bg-slate-200 transition-colors">Cancelar</button>
+                            <button type="submit"
+                                class="flex-1 py-2 px-4 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-200">Confirmar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            </section>
+
+            <!-- SECCIÓN: DESGLOSE DE GASTOS -->
+            <section id="tab-breakdown" class="hidden h-[calc(100vh-140px)] flex gap-6">
+                <!-- Sidebar: Lista de Hojas -->
+                <div class="w-64 glass-card rounded-2xl shadow-sm flex flex-col overflow-hidden">
+                    <div class="p-4 border-b border-slate-100 bg-white/50 backdrop-blur">
+                        <button onclick="createNewSheet()"
+                            class="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-2 px-4 rounded-lg text-sm flex items-center justify-center gap-2 transition-all shadow-lg shadow-slate-200">
+                            <i data-lucide="plus" class="w-4 h-4"></i> Nueva Hoja
+                        </button>
+                    </div>
+                    <div id="sheets-list" class="flex-1 overflow-y-auto p-2 space-y-1">
+                        <!-- Dynamic List -->
+                    </div>
+                </div>
+
+                <!-- Main: Grid de Desglose -->
+                <div class="flex-1 glass-card rounded-2xl shadow-sm flex flex-col overflow-hidden relative">
+                    <!-- Vista vacía -->
+                    <div id="breakdown-empty"
+                        class="absolute inset-0 flex flex-col items-center justify-center text-slate-400">
+                        <i data-lucide="table" class="w-16 h-16 mb-4 opacity-50"></i>
+                        <p class="text-sm">Selecciona o crea una hoja de desglose</p>
+                    </div>
+
+                    <!-- Contenido de Hoja -->
+                    <div id="breakdown-content" class="hidden flex flex-col h-full">
+                        <header
+                            class="bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center bg-slate-50/50">
+                            <div>
+                                <h3 id="sheet-title" class="text-lg font-bold text-slate-800">Nómina Semanal 42</h3>
+                                <p id="sheet-date" class="text-xs text-slate-500">Creado el 21 oct 2025</p>
+                            </div>
+                            <div class="text-right flex flex-wrap items-center gap-3">
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <select id="template-select"
+                                        class="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs font-bold text-slate-700">
+                                        <option value="">Plantilla</option>
+                                        <option value="payroll">Nomina semanal</option>
+                                        <option value="fuel">Gasolina semanal</option>
+                                        <option value="maintenance">Mantenimiento</option>
+                                    </select>
+                                    <button onclick="applyTemplate()"
+                                        class="bg-slate-800 hover:bg-slate-900 text-white font-bold py-1 px-3 rounded text-xs flex items-center gap-2 transition-all shadow-md">
+                                        <i data-lucide="wand-2" class="w-4 h-4"></i> Aplicar
+                                    </button>
+                                    <button onclick="pasteRows()"
+                                        class="bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-bold py-1 px-3 rounded text-xs flex items-center gap-2 transition-all shadow-sm">
+                                        <i data-lucide="clipboard" class="w-4 h-4"></i> Pegar
+                                    </button>
+                                    <button onclick="openCsvImport()"
+                                        class="bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-bold py-1 px-3 rounded text-xs flex items-center gap-2 transition-all shadow-sm">
+                                        <i data-lucide="file-up" class="w-4 h-4"></i> Importar CSV
+                                    </button>
+                                    <input id="csv-file" type="file" accept=".csv,text/csv" class="hidden" />
+                                </div>
+                                <button id="btn-group-rows" onclick="groupSelectedRows()"
+                                    class="hidden bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-1 px-3 rounded text-xs flex items-center gap-2 transition-all shadow-md">
+                                    <i data-lucide="folder-check" class="w-4 h-4"></i> Agrupar
+                                </button>
+                                <div>
+                                    <p class="text-[10px] font-black text-slate-400 uppercase">Total Desglosado</p>
+                                    <h2 id="sheet-total" class="text-2xl font-black text-slate-800">$0.00</h2>
+                                </div>
+                            </div>
+                        </header>
+
+                        <div class="flex-1 overflow-auto bg-white">
+                            <table class="w-full text-left text-sm">
+                                <thead class="bg-slate-50 sticky top-0 z-10 shadow-sm">
+                                    <tr>
+                                        <th class="px-6 py-2 text-slate-500 uppercase text-[10px] font-black w-1/3">
+                                            Concepto / Nombre</th>
+                                        <th
+                                            class="px-6 py-2 text-slate-500 uppercase text-[10px] font-black w-1/4 text-right">
+                                            Monto</th>
+                                        <th class="px-6 py-2 text-slate-500 uppercase text-[10px] font-black">Notas</th>
+                                        <th class="px-6 py-2 w-10"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="rows-body" class="divide-y divide-slate-100">
+                                    <!-- Rows -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="p-4 border-t border-slate-200 bg-slate-50">
+                            <button onclick="openSheetRowModal()"
+                                class="text-blue-600 hover:text-blue-800 text-sm font-bold flex items-center gap-2">
+                                <i data-lucide="plus-circle" class="w-4 h-4"></i> Añadir Fila
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECCIÓN: CONFIGURACIÓN -->
+            <section id="tab-config" class="hidden grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Estructura de Costos Fijos e Impuestos -->
+                <div class="glass-card p-6 rounded-2xl shadow-sm">
+                    <h4 class="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                        <i data-lucide="landmark" class="w-5 h-5 text-rose-500"></i> Compromisos Fijos y Fiscales
+                    </h4>
+                    <p class="text-xs text-slate-500 mb-6">Configura aquí los montos mensuales que el contador te
+                        indique.</p>
+
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-2 gap-4 border-b border-slate-100 pb-4">
+                            <div>
+                                <label class="text-[10px] font-black text-slate-400 uppercase">Nómina (Semanal)</label>
+                                <input type="number" id="cfg-payroll"
+                                    class="mt-1 w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm font-bold"
+                                    onchange="updateFixedCosts()">
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-black text-rose-500 uppercase">Impuestos Totales
+                                    (Mensual)</label>
+                                <input type="number" id="cfg-taxes" placeholder="IVA + ISR"
+                                    class="mt-1 w-full bg-rose-50 border border-rose-100 rounded-lg p-2 text-sm font-bold text-rose-700"
+                                    onchange="updateFixedCosts()">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="text-[10px] font-black text-slate-400 uppercase">3 Camionetas
+                                    (Mensual)</label>
+                                <input type="number" id="cfg-trucks"
+                                    class="mt-1 w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm font-bold"
+                                    onchange="updateFixedCosts()">
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-black text-slate-400 uppercase">Renta Oficina
+                                    (Mensual)</label>
+                                <input type="number" id="cfg-rent"
+                                    class="mt-1 w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm font-bold"
+                                    onchange="updateFixedCosts()">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-black text-slate-400 uppercase">Servicios (L/A/I/IMSS
+                                Mensual)</label>
+                            <input type="number" id="cfg-services" placeholder="Agua, Luz, Internet, Cuotas"
+                                class="mt-1 w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm font-bold"
+                                onchange="updateFixedCosts()">
+                        </div>
+                    </div>
+
+                    <div class="mt-6 p-4 bg-blue-50 rounded-xl border border-blue-100">
+                        <p class="text-[10px] text-blue-700 font-bold uppercase mb-1 italic">Nota Financiera:</p>
+                        <p class="text-[11px] text-blue-600 leading-relaxed">El sistema divide automáticamente los
+                            gastos mensuales entre 4.33 para calcular cuánto dinero debes "apartar" cada semana para
+                            sobrevivir.</p>
+                    </div>
+                </div>
+
+                <div class="glass-card p-6 rounded-2xl shadow-sm">
+                    <h4 class="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                        <i data-lucide="tag" class="w-5 h-5 text-blue-500"></i> Catálogo de Categorías
+                    </h4>
+                    <div id="config-categories-list" class="space-y-2 mb-4 max-h-[300px] overflow-y-auto"></div>
+                    <div class="flex gap-2">
+                        <input type="text" id="new-cat-name" placeholder="Nueva categoría..."
+                            class="flex-1 bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm">
+                        <button onclick="addCategory()"
+                            class="bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-bold">Añadir</button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal Create Sheet -->
+    <div id="sheet-modal" class="fixed inset-0 z-[60] hidden">
+        <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onclick="closeSheetModal()"></div>
+        <div
+            class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-sm bg-white rounded-2xl shadow-2xl p-6 animate-blob">
+            <h3 class="text-lg font-bold text-slate-800 mb-4">Nueva Hoja de Desglose</h3>
+            <form id="createSheetForm" class="space-y-4">
+                <div>
+                    <label class="text-[10px] font-black text-slate-500 uppercase">Nombre de la Hoja</label>
+                    <input type="text" id="new-sheet-title" placeholder="Ej: Nómina Semanal 42" required
+                        class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm">
+                </div>
+                <div class="flex gap-3 pt-4">
+                    <button type="button" onclick="closeSheetModal()"
+                        class="flex-1 py-2 px-4 bg-slate-100 text-slate-600 font-bold rounded-lg hover:bg-slate-200 transition-colors">Cancelar</button>
+                    <button type="submit"
+                        class="flex-1 py-2 px-4 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition-colors">Crear</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Add Sheet Row -->
+    <div id="sheet-row-modal" class="fixed inset-0 z-[60] hidden">
+        <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onclick="closeSheetRowModal()"></div>
+        <div
+            class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-sm bg-white rounded-2xl shadow-2xl p-6 animate-blob">
+            <h3 id="sheet-row-modal-title" class="text-lg font-bold text-slate-800 mb-4">Añadir Fila</h3>
+            <form id="createRowForm" class="space-y-4">
+                <div>
+                    <label class="text-[10px] font-black text-slate-500 uppercase">Concepto / Nombre</label>
+                    <input type="text" id="new-row-concept" placeholder="Ej: Juan Perez" required
+                        class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm">
+                </div>
+                <div>
+                    <label class="text-[10px] font-black text-slate-500 uppercase">Monto</label>
+                    <input type="number" step="0.01" id="new-row-amount" placeholder="0.00" required
+                        class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm font-bold text-slate-700">
+                </div>
+                <div>
+                    <label class="text-[10px] font-black text-slate-500 uppercase">Notas (Opcional)</label>
+                    <input type="text" id="new-row-notes" placeholder="Detalles adicionales..."
+                        class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm">
+                </div>
+                <div class="flex gap-3 pt-4">
+                    <button type="button" onclick="closeSheetRowModal()"
+                        class="flex-1 py-2 px-4 bg-slate-100 text-slate-600 font-bold rounded-lg hover:bg-slate-200 transition-colors">Cancelar</button>
+                    <button type="submit"
+                        class="flex-1 py-2 px-4 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition-colors">Añadir</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Group Rows -->
+    <div id="group-modal" class="fixed inset-0 z-[60] hidden">
+        <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onclick="closeGroupModal()"></div>
+        <div
+            class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-sm bg-white rounded-2xl shadow-2xl p-6 animate-blob">
+            <h3 class="text-lg font-bold text-slate-800 mb-4">Agrupar Filas</h3>
+            <form id="groupForm" class="space-y-4">
+                <div>
+                    <label class="text-[10px] font-black text-slate-500 uppercase">Nombre del Grupo</label>
+                    <input type="text" id="group-name" placeholder="Ej: Nomina Semanal" required
+                        class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm">
+                </div>
+                <div class="flex gap-3 pt-4">
+                    <button type="button" onclick="closeGroupModal()"
+                        class="flex-1 py-2 px-4 bg-slate-100 text-slate-600 font-bold rounded-lg hover:bg-slate-200 transition-colors">Cancelar</button>
+                    <button type="submit"
+                        class="flex-1 py-2 px-4 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition-colors">Agrupar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Move Row -->
+    <div id="move-modal" class="fixed inset-0 z-[60] hidden">
+        <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onclick="closeMoveModal()"></div>
+        <div
+            class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-sm bg-white rounded-2xl shadow-2xl p-6 animate-blob">
+            <h3 id="move-modal-title" class="text-lg font-bold text-slate-800 mb-4">Mover Fila</h3>
+            <form id="moveForm" class="space-y-4">
+                <div>
+                    <label class="text-[10px] font-black text-slate-500 uppercase">Grupo destino</label>
+                    <select id="move-target"
+                        class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm"></select>
+                </div>
+                <div class="flex gap-3 pt-4">
+                    <button type="button" onclick="closeMoveModal()"
+                        class="flex-1 py-2 px-4 bg-slate-100 text-slate-600 font-bold rounded-lg hover:bg-slate-200 transition-colors">Cancelar</button>
+                    <button type="submit"
+                        class="flex-1 py-2 px-4 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition-colors">Mover</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast"
+        class="fixed bottom-6 right-6 transform translate-y-24 opacity-0 transition-all duration-300 pointer-events-none z-[100]">
+        <div class="bg-slate-900 text-white px-6 py-3 rounded-xl shadow-2xl flex items-center gap-3">
+            <i data-lucide="check-circle" class="text-emerald-400 w-5 h-5"></i>
+            <span id="toast-msg">Operación Exitosa</span>
+        </div>
+    </div>
+
+    <script src="js/state.js?v=2"></script>
+    <script src="js/app.js?v=2"></script>
+</body>
+
+</html>

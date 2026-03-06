@@ -1,0 +1,25 @@
+# Entornos virtuales
+.venv/
+venv/
+
+# Base de datos local (no subir a la nube — Render usa PostgreSQL)
+finance.db
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
+
+# Variables de entorno locales
+.env
+
+# Scripts de build locales
+build_tools/
+legacy_files/
+
+# Archivos temporales CSV importados
+*.csv
