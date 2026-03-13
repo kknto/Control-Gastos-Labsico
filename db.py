@@ -1,32 +1,56 @@
 import json
 import os
+from datetime import date
 
-DATABASE_URL = os.environ.get('DATABASE_URL')
+DEFAULT_CATEGORIES = [
+    'Ventas',
+    'N\u00f3mina',
+    'Renta',
+    'Impuestos (IVA/ISR)',
+    'Cuotas (IMSS/INFONAVIT)',
+    'Veh\u00edculos',
+    'Servicios',
+    'Otros',
+]
+
+DEFAULT_FIXED_COSTS = {
+    'payrollWeekly': 38600,
+    'trucksMonthly': 29235,
+    'servicesMonthly': 3000,
+    'rentMonthly': 25000,
+    'taxesMonthly': 0,
+}
 
 # -------------------------------------------------------------------
 # Connection helpers
 # -------------------------------------------------------------------
 
+def _database_url():
+    return os.environ.get('DATABASE_URL', '').strip()
+
+
+def _normalized_database_url():
+    url = _database_url()
+    if url.startswith('postgres://'):
+        return 'postgresql://' + url[len('postgres://'):]
+    return url
+
+
 def _is_postgres():
-    return bool(DATABASE_URL)
+    return bool(_database_url())
 
 
 def get_db_connection():
     if _is_postgres():
         import psycopg2
-        import psycopg2.extras
-        # Render provides URLs starting with 'postgres://' but psycopg2
-        # requires 'postgresql://'
-        url = DATABASE_URL
-        if url.startswith('postgres://'):
-            url = 'postgresql://' + url[len('postgres://'):]
-        conn = psycopg2.connect(url)
+        conn = psycopg2.connect(_normalized_database_url())
         conn.autocommit = False
         return conn
     else:
         import sqlite3
         conn = sqlite3.connect('finance.db')
         conn.row_factory = sqlite3.Row
+        conn.execute('PRAGMA foreign_keys = ON')
         return conn
 
 
@@ -64,6 +88,15 @@ def _execute(conn, sql, params=()):
     c = _cursor(conn)
     c.execute(sql, params)
     return c
+
+
+def ping():
+    conn = get_db_connection()
+    try:
+        c = _execute(conn, 'SELECT 1 AS ok')
+        return bool(c.fetchone())
+    finally:
+        conn.close()
 
 
 # -------------------------------------------------------------------
@@ -194,15 +227,18 @@ def init_db():
                 FOREIGN KEY (sheet_id) REFERENCES sheets (id) ON DELETE CASCADE
             )
         ''')
-        for col in ['parent_id', 'subtotal', 'iva', 'sort_order']:
-            try:
-                c.execute(f'SELECT {col} FROM sheet_rows LIMIT 1')
-            except sqlite3.OperationalError:
+        sheet_row_columns = {
+            row[1] for row in c.execute('PRAGMA table_info(sheet_rows)').fetchall()
+        }
+        for col in ['parent_id', 'sort_order']:
+            if col not in sheet_row_columns:
                 c.execute(f'ALTER TABLE sheet_rows ADD COLUMN {col} INTEGER')
+
+        transaction_columns = {
+            row[1] for row in c.execute('PRAGMA table_info(transactions)').fetchall()
+        }
         for col in ['subtotal', 'iva']:
-            try:
-                c.execute(f'SELECT {col} FROM transactions LIMIT 1')
-            except sqlite3.OperationalError:
+            if col not in transaction_columns:
                 c.execute(f'ALTER TABLE transactions ADD COLUMN {col} REAL')
 
     # Initialize sort_order for existing rows
@@ -212,24 +248,15 @@ def init_db():
         pass
 
     # Default settings
-    default_categories = ['Ventas', 'Nómina', 'Renta', 'Impuestos (IVA/ISR)',
-                          'Cuotas (IMSS/INFONAVIT)', 'Vehículos', 'Servicios', 'Otros']
-    default_fixed = {
-        'payrollWeekly': 38600,
-        'trucksMonthly': 29235,
-        'servicesMonthly': 3000,
-        'rentMonthly': 25000,
-        'taxesMonthly': 0
-    }
     p = _placeholder()
     c.execute(f"SELECT 1 FROM settings WHERE key = {p}", ('categories',))
     if not c.fetchone():
         c.execute(f'INSERT INTO settings (key, value) VALUES ({p}, {p})',
-                  ('categories', json.dumps(default_categories)))
+                  ('categories', json.dumps(DEFAULT_CATEGORIES)))
     c.execute(f"SELECT 1 FROM settings WHERE key = {p}", ('fixedCosts',))
     if not c.fetchone():
         c.execute(f'INSERT INTO settings (key, value) VALUES ({p}, {p})',
-                  ('fixedCosts', json.dumps(default_fixed)))
+                  ('fixedCosts', json.dumps(DEFAULT_FIXED_COSTS)))
 
     conn.commit()
     conn.close()
@@ -394,7 +421,7 @@ def get_sheets():
 def create_sheet(data):
     conn = get_db_connection()
     p = _placeholder()
-    created_at = data.get('created_at') or '2026-01-21'
+    created_at = data.get('created_at') or date.today().isoformat()
     sql = f'INSERT INTO sheets (title,created_at,notes) VALUES ({p},{p},{p})'
     if _is_postgres():
         sql += ' RETURNING id'

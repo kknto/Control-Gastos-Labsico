@@ -28,6 +28,15 @@ def normalize_service_out(payload):
 def index():
     return send_from_directory('.', 'index.html')
 
+@app.route('/health')
+def health():
+    ok = db.ping()
+    status = 200 if ok else 503
+    return jsonify({
+        'ok': ok,
+        'database': 'postgres' if os.environ.get('DATABASE_URL') else 'sqlite'
+    }), status
+
 @app.route('/api/transactions', methods=['GET'])
 def get_transactions():
     return jsonify(db.get_transactions())
