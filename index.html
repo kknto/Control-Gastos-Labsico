@@ -408,26 +408,76 @@
                 </div>
 
                 <!-- Resumen Filtrado -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                <div class="space-y-4">
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <h5 class="text-xs font-black text-slate-500 uppercase tracking-[0.18em]">Resumen Fiscal</h5>
+                            <span class="text-[10px] font-bold text-slate-400 uppercase">Excluye categoria Efectivo</span>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
+                            <div class="glass-card p-4 rounded-2xl shadow-sm border-r-4 border-emerald-500">
+                                <p class="text-[10px] font-black text-slate-500 uppercase mb-1">Ingresos Fiscales</p>
+                                <h3 id="filtered-income" class="text-xl font-black text-emerald-600">$0.00</h3>
+                            </div>
+                            <div class="glass-card p-4 rounded-2xl shadow-sm border-r-4 border-rose-500">
+                                <p class="text-[10px] font-black text-slate-500 uppercase mb-1">Egresos Fiscales</p>
+                                <h3 id="filtered-expense" class="text-xl font-black text-rose-600">$0.00</h3>
+                            </div>
+                            <div class="glass-card p-4 rounded-2xl shadow-sm border-r-4 border-indigo-500">
+                                <p class="text-[10px] font-black text-slate-500 uppercase mb-1">Subtotal Fiscal</p>
+                                <h3 id="filtered-subtotal" class="text-xl font-black text-indigo-600">$0.00</h3>
+                            </div>
+                            <div class="glass-card p-4 rounded-2xl shadow-sm border-r-4 border-amber-500">
+                                <p class="text-[10px] font-black text-slate-500 uppercase mb-1">IVA Fiscal</p>
+                                <h3 id="filtered-iva" class="text-xl font-black text-amber-600">$0.00</h3>
+                            </div>
+                            <div class="glass-card p-4 rounded-2xl shadow-sm border-r-4 border-blue-500">
+                                <p class="text-[10px] font-black text-slate-500 uppercase mb-1">Balance Fiscal</p>
+                                <h3 id="filtered-balance" class="text-xl font-black text-blue-600">$0.00</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <h5 class="text-xs font-black text-slate-500 uppercase tracking-[0.18em]">Resumen Efectivo</h5>
+                            <span class="text-[10px] font-bold text-slate-400 uppercase">Solo categoria Efectivo</span>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                            <div class="glass-card p-4 rounded-2xl shadow-sm border-r-4 border-emerald-500">
+                                <p class="text-[10px] font-black text-slate-500 uppercase mb-1">Ingresos Efectivo</p>
+                                <h3 id="filtered-cash-income" class="text-xl font-black text-emerald-600">$0.00</h3>
+                            </div>
+                            <div class="glass-card p-4 rounded-2xl shadow-sm border-r-4 border-rose-500">
+                                <p class="text-[10px] font-black text-slate-500 uppercase mb-1">Egresos Efectivo</p>
+                                <h3 id="filtered-cash-expense" class="text-xl font-black text-rose-600">$0.00</h3>
+                            </div>
+                            <div class="glass-card p-4 rounded-2xl shadow-sm border-r-4 border-emerald-500">
+                                <p class="text-[10px] font-black text-slate-500 uppercase mb-1">Balance Efectivo</p>
+                                <h3 id="filtered-cash-balance" class="text-xl font-black text-emerald-600">$0.00</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="hidden grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                     <div class="glass-card p-4 rounded-2xl shadow-sm border-r-4 border-emerald-500">
                         <p class="text-[10px] font-black text-slate-500 uppercase mb-1">💰 Ingresos</p>
-                        <h3 id="filtered-income" class="text-xl font-black text-emerald-600">$0.00</h3>
+                        <h3 id="legacy-filtered-income" class="text-xl font-black text-emerald-600">$0.00</h3>
                     </div>
                     <div class="glass-card p-4 rounded-2xl shadow-sm border-r-4 border-rose-500">
                         <p class="text-[10px] font-black text-slate-500 uppercase mb-1">💸 Egresos</p>
-                        <h3 id="filtered-expense" class="text-xl font-black text-rose-600">$0.00</h3>
+                        <h3 id="legacy-filtered-expense" class="text-xl font-black text-rose-600">$0.00</h3>
                     </div>
                     <div class="glass-card p-4 rounded-2xl shadow-sm border-r-4 border-indigo-500">
                         <p class="text-[10px] font-black text-slate-500 uppercase mb-1">🏦 Subtotal</p>
-                        <h3 id="filtered-subtotal" class="text-xl font-black text-indigo-600">$0.00</h3>
+                        <h3 id="legacy-filtered-subtotal" class="text-xl font-black text-indigo-600">$0.00</h3>
                     </div>
                     <div class="glass-card p-4 rounded-2xl shadow-sm border-r-4 border-amber-500">
                         <p class="text-[10px] font-black text-slate-500 uppercase mb-1">📜 IVA</p>
-                        <h3 id="filtered-iva" class="text-xl font-black text-amber-600">$0.00</h3>
+                        <h3 id="legacy-filtered-iva" class="text-xl font-black text-amber-600">$0.00</h3>
                     </div>
                     <div class="glass-card p-4 rounded-2xl shadow-sm border-r-4 border-blue-500">
                         <p class="text-[10px] font-black text-slate-500 uppercase mb-1">📊 Balance Neto</p>
-                        <h3 id="filtered-balance" class="text-xl font-black text-blue-600">$0.00</h3>
+                        <h3 id="legacy-filtered-balance" class="text-xl font-black text-blue-600">$0.00</h3>
                     </div>
                 </div>
 

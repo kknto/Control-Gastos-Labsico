@@ -86,6 +86,10 @@ function getTransactionDisplayCategory(transaction) {
     return baseCategory;
 }
 
+function isCashTransaction(transaction) {
+    return ((transaction?.category || '').trim() === 'Efectivo');
+}
+
 function getDashboardRange() {
     const select = document.getElementById('dashboard-range');
     const value = select?.value || 'ytd';
@@ -2346,38 +2350,59 @@ function updateFilterButtonsUI(activeType) {
 }
 
 function updateFilteredSummary(transactions) {
-    let income = 0;
-    let expense = 0;
-    let subtotal = 0;
-    let iva = 0;
+    let fiscalIncome = 0;
+    let fiscalExpense = 0;
+    let fiscalSubtotal = 0;
+    let fiscalIva = 0;
+    let cashIncome = 0;
+    let cashExpense = 0;
 
     transactions.forEach(t => {
-        if (t.status === 'Pagado') {
-            if (t.type === 'ingreso') {
-                income += t.amount;
-                subtotal += (t.subtotal || 0);
-                iva += (t.iva || 0);
+        if (t.status !== 'Pagado') return;
+
+        const isCash = isCashTransaction(t);
+        if (t.type === 'ingreso') {
+            if (isCash) {
+                cashIncome += t.amount;
             } else {
-                expense += t.amount;
+                fiscalIncome += t.amount;
+                fiscalSubtotal += (t.subtotal || 0);
+                fiscalIva += (t.iva || 0);
+            }
+        } else if (t.type === 'egreso') {
+            if (isCash) {
+                cashExpense += t.amount;
+            } else {
+                fiscalExpense += t.amount;
             }
         }
     });
 
-    const balance = income - expense;
+    const fiscalBalance = fiscalIncome - fiscalExpense;
+    const cashBalance = cashIncome - cashExpense;
 
-    const incEl = document.getElementById('filtered-income');
-    const expEl = document.getElementById('filtered-expense');
-    const subEl = document.getElementById('filtered-subtotal');
-    const ivaEl = document.getElementById('filtered-iva');
-    const balEl = document.getElementById('filtered-balance');
+    const fiscalIncEl = document.getElementById('filtered-income');
+    const fiscalExpEl = document.getElementById('filtered-expense');
+    const fiscalSubEl = document.getElementById('filtered-subtotal');
+    const fiscalIvaEl = document.getElementById('filtered-iva');
+    const fiscalBalEl = document.getElementById('filtered-balance');
+    const cashIncEl = document.getElementById('filtered-cash-income');
+    const cashExpEl = document.getElementById('filtered-cash-expense');
+    const cashBalEl = document.getElementById('filtered-cash-balance');
 
-    if (incEl) incEl.textContent = formatCurrency(income);
-    if (expEl) expEl.textContent = formatCurrency(expense);
-    if (subEl) subEl.textContent = formatCurrency(subtotal);
-    if (ivaEl) ivaEl.textContent = formatCurrency(iva);
-    if (balEl) {
-        balEl.textContent = formatCurrency(balance);
-        balEl.className = `text-xl font-black ${balance >= 0 ? 'text-emerald-600' : 'text-rose-600'}`;
+    if (fiscalIncEl) fiscalIncEl.textContent = formatCurrency(fiscalIncome);
+    if (fiscalExpEl) fiscalExpEl.textContent = formatCurrency(fiscalExpense);
+    if (fiscalSubEl) fiscalSubEl.textContent = formatCurrency(fiscalSubtotal);
+    if (fiscalIvaEl) fiscalIvaEl.textContent = formatCurrency(fiscalIva);
+    if (fiscalBalEl) {
+        fiscalBalEl.textContent = formatCurrency(fiscalBalance);
+        fiscalBalEl.className = `text-xl font-black ${fiscalBalance >= 0 ? 'text-emerald-600' : 'text-rose-600'}`;
+    }
+    if (cashIncEl) cashIncEl.textContent = formatCurrency(cashIncome);
+    if (cashExpEl) cashExpEl.textContent = formatCurrency(cashExpense);
+    if (cashBalEl) {
+        cashBalEl.textContent = formatCurrency(cashBalance);
+        cashBalEl.className = `text-xl font-black ${cashBalance >= 0 ? 'text-emerald-600' : 'text-rose-600'}`;
     }
 }
 
