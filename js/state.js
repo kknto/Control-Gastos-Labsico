@@ -15,14 +15,28 @@ function normalizeService(svc) {
     return normalized;
 }
 
+async function apiFetch(url, options = {}) {
+    const response = await fetch(url, {
+        credentials: 'same-origin',
+        ...options
+    });
+
+    if (response.status === 401) {
+        window.location.href = '/login';
+        throw new Error('authentication_required');
+    }
+
+    return response;
+}
+
 const API = {
     async loadState() {
         try {
             const [txRes, settingsRes, svcRes, sheetsRes] = await Promise.all([
-                fetch('/api/transactions'),
-                fetch('/api/settings'),
-                fetch('/api/services'),
-                fetch('/api/sheets')
+                apiFetch('/api/transactions'),
+                apiFetch('/api/settings'),
+                apiFetch('/api/services'),
+                apiFetch('/api/sheets')
             ]);
 
             state.transactions = await txRes.json();
@@ -50,7 +64,7 @@ const API = {
     },
 
     async addTransaction(tx) {
-        const res = await fetch('/api/transactions', {
+        const res = await apiFetch('/api/transactions', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(tx)
@@ -60,7 +74,7 @@ const API = {
     },
 
     async updateTransaction(tx) {
-        await fetch(`/api/transactions/${tx.id}`, {
+        await apiFetch(`/api/transactions/${tx.id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(tx)
@@ -70,12 +84,12 @@ const API = {
     },
 
     async deleteTransaction(id) {
-        await fetch(`/api/transactions/${id}`, { method: 'DELETE' });
+        await apiFetch(`/api/transactions/${id}`, { method: 'DELETE' });
         state.transactions = state.transactions.filter(t => t.id !== id);
     },
 
     async deleteTransactionsBulk(ids) {
-        await fetch('/api/transactions/bulk', {
+        await apiFetch('/api/transactions/bulk', {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ ids })
@@ -85,7 +99,7 @@ const API = {
 
     async saveCategories(cats) {
         state.categories = cats;
-        await fetch('/api/settings/categories', {
+        await apiFetch('/api/settings/categories', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(cats)
@@ -94,7 +108,7 @@ const API = {
 
     async saveFixedCosts(costs) {
         state.fixedCosts = costs;
-        await fetch('/api/settings/fixedCosts', {
+        await apiFetch('/api/settings/fixedCosts', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(costs)
@@ -103,7 +117,7 @@ const API = {
 
     // Services API
     async addService(svc) {
-        const res = await fetch('/api/services', {
+        const res = await apiFetch('/api/services', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(svc)
@@ -113,7 +127,7 @@ const API = {
     },
 
     async updateService(svc) {
-        await fetch(`/api/services/${svc.id}`, {
+        await apiFetch(`/api/services/${svc.id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(svc)
@@ -123,18 +137,18 @@ const API = {
     },
 
     async deleteService(id) {
-        await fetch(`/api/services/${id}`, { method: 'DELETE' });
+        await apiFetch(`/api/services/${id}`, { method: 'DELETE' });
         state.services = state.services.filter(s => s.id !== id);
     },
 
     // Sheets API
     async loadSheets() {
-        const res = await fetch('/api/sheets');
+        const res = await apiFetch('/api/sheets');
         state.sheets = await res.json();
     },
 
     async createSheet(sheet) {
-        const res = await fetch('/api/sheets', {
+        const res = await apiFetch('/api/sheets', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(sheet)
@@ -144,17 +158,17 @@ const API = {
     },
 
     async deleteSheet(id) {
-        await fetch(`/api/sheets/${id}`, { method: 'DELETE' });
+        await apiFetch(`/api/sheets/${id}`, { method: 'DELETE' });
         state.sheets = state.sheets.filter(s => s.id !== id);
     },
 
     async loadSheetRows(sheetId) {
-        const res = await fetch(`/api/sheets/${sheetId}/rows`);
+        const res = await apiFetch(`/api/sheets/${sheetId}/rows`);
         state.currentSheetRows = await res.json();
     },
 
     async addSheetRow(row) {
-        const res = await fetch('/api/sheet-rows', {
+        const res = await apiFetch('/api/sheet-rows', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(row)
@@ -165,8 +179,18 @@ const API = {
     },
 
     async deleteSheetRow(id) {
-        await fetch(`/api/sheet-rows/${id}`, { method: 'DELETE' });
+        await apiFetch(`/api/sheet-rows/${id}`, { method: 'DELETE' });
         state.currentSheetRows = state.currentSheetRows.filter(r => r.id !== id);
+    },
+
+    async loadSession() {
+        const res = await apiFetch('/api/auth/session');
+        return res.json();
+    },
+
+    async logout() {
+        await apiFetch('/api/auth/logout', { method: 'POST' });
+        window.location.href = '/login';
     }
 };
 

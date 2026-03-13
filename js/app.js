@@ -720,7 +720,7 @@ document.getElementById('createRowForm')?.addEventListener('submit', async (e) =
                 amount,
                 notes
             };
-            await fetch(`/api/sheet-rows/${editingSheetRowId}`, {
+            await apiFetch(`/api/sheet-rows/${editingSheetRowId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(updated)
@@ -769,7 +769,7 @@ document.getElementById('groupForm')?.addEventListener('submit', async (e) => {
         for (const id of selectedIds) {
             const row = state.currentSheetRows.find(r => r.id === id);
             row.parent_id = parent.id;
-            await fetch(`/api/sheet-rows/${id}`, {
+            await apiFetch(`/api/sheet-rows/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(row)
@@ -800,7 +800,7 @@ document.getElementById('moveForm')?.addEventListener('submit', async (e) => {
         const previousParent = row.parent_id || null;
         const updated = { ...row, parent_id: targetId };
 
-        await fetch(`/api/sheet-rows/${movingSheetRowId}`, {
+        await apiFetch(`/api/sheet-rows/${movingSheetRowId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(updated)
@@ -1698,7 +1698,7 @@ function ensureRowTableEvents() {
 }
 
 async function saveSheetRow(updated) {
-    await fetch(`/api/sheet-rows/${updated.id}`, {
+    await apiFetch(`/api/sheet-rows/${updated.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updated)
@@ -2006,7 +2006,7 @@ async function ungroupRows(groupId) {
     try {
         for (const child of children) {
             const updated = { ...child, parent_id: null };
-            await fetch(`/api/sheet-rows/${child.id}`, {
+            await apiFetch(`/api/sheet-rows/${child.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(updated)
@@ -2203,10 +2203,41 @@ function groupSelectedRows() {
     openGroupModal();
 }
 
+function renderSessionHeader(sessionData) {
+    const currentDate = document.getElementById('current-date');
+    if (currentDate) {
+        currentDate.textContent = new Date().toLocaleDateString('es-MX', {
+            weekday: 'short',
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric'
+        });
+    }
+
+    const userBadge = document.getElementById('current-user');
+    if (userBadge) {
+        const name = sessionData?.user?.name || 'Administrador';
+        const role = (sessionData?.user?.role || 'admin').toUpperCase();
+        userBadge.textContent = `${name} · ${role}`;
+    }
+}
+
+async function logoutUser() {
+    try {
+        await API.logout();
+    } catch (err) {
+        console.error('Error al cerrar sesion:', err);
+        window.location.href = '/login';
+    }
+}
+
 // Final initialization
 async function updateUI() {
+    const sessionData = await API.loadSession();
     const success = await API.loadState();
     if (!success) return;
+
+    renderSessionHeader(sessionData);
 
     // Sync config values
     if (document.getElementById('cfg-payroll')) document.getElementById('cfg-payroll').value = state.fixedCosts.payrollWeekly || 0;

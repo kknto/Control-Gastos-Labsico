@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acceso Seguro | Labsicorp</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body class="login-page">
+    <main class="login-shell">
+        <section class="login-stage">
+            <div class="login-orbit" aria-hidden="true">
+                <div class="login-ring"></div>
+                <div class="login-ring ring-2"></div>
+                <div class="login-ring ring-3"></div>
+                <div class="login-core"></div>
+                <div class="login-node node-1"></div>
+                <div class="login-node node-2"></div>
+                <div class="login-node node-3"></div>
+            </div>
+
+            <div class="login-panel">
+                <div class="login-kicker">
+                    <i data-lucide="shield-check" class="w-4 h-4"></i>
+                    Labsicorp Secure Access
+                </div>
+                <h1 class="login-title">
+                    Controla la caja.
+                    <span>Impresiona al entrar.</span>
+                </h1>
+                <p class="login-copy">
+                    Accede al panel corporativo con una puerta de entrada mas fuerte, mas teatral y mucho mas clara.
+                    Una sola cuenta administradora, sesion protegida en servidor y acceso completo al tablero.
+                </p>
+
+                <div class="login-grid">
+                    <div class="login-stat">
+                        <div class="login-stat-label">Modo</div>
+                        <div class="login-stat-value">Admin Vault</div>
+                    </div>
+                    <div class="login-stat">
+                        <div class="login-stat-label">Seguridad</div>
+                        <div class="login-stat-value">Sesion + hash</div>
+                    </div>
+                    <div class="login-stat">
+                        <div class="login-stat-label">Acceso</div>
+                        <div class="login-stat-value">Perfil unico</div>
+                    </div>
+                    <div class="login-stat">
+                        <div class="login-stat-label">Estado</div>
+                        <div class="login-stat-value">Listo para operar</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="login-card-wrap">
+            <div class="login-card">
+                <div class="login-card-header">
+                    <span class="login-badge">
+                        <i data-lucide="lock-keyhole" class="w-4 h-4"></i>
+                        Solo Administrador
+                    </span>
+                    <i data-lucide="sparkles" class="w-5 h-5 text-sky-300"></i>
+                </div>
+
+                <h2 class="login-card-title">Iniciar sesion</h2>
+                <p class="login-card-copy">
+                    Usa la cuenta administradora para entrar al panel protegido. El acceso fallido repetido se bloquea temporalmente.
+                </p>
+
+                <form id="login-form" novalidate>
+                    <div class="login-field">
+                        <label for="login-username">Usuario</label>
+                        <div class="login-input-wrap">
+                            <i data-lucide="user-round" class="login-input-icon w-4 h-4"></i>
+                            <input id="login-username" name="username" type="text" autocomplete="username" placeholder="admin.labsico" required>
+                        </div>
+                    </div>
+
+                    <div class="login-field">
+                        <label for="login-password">Contrasena</label>
+                        <div class="login-input-wrap">
+                            <i data-lucide="key-round" class="login-input-icon w-4 h-4"></i>
+                            <input id="login-password" name="password" type="password" autocomplete="current-password" placeholder="Ingresa tu acceso" required>
+                            <button id="toggle-password" class="login-eye-btn" type="button" aria-label="Mostrar u ocultar contrasena">
+                                <i data-lucide="eye" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <button id="login-submit" class="login-submit" type="submit">
+                        Entrar al centro de control
+                    </button>
+                    <p id="login-error" class="login-error" role="alert"></p>
+                </form>
+
+                <div class="login-footnote">
+                    <span>Sesion administrada en servidor Flask con cookies `HttpOnly` y `SameSite=Lax`.</span>
+                    <span>Render puede reforzarlo aun mas con `SECRET_KEY` y `ADMIN_PASSWORD_HASH` en variables de entorno.</span>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script src="js/auth.js"></script>
+</body>
+
+</html>
