@@ -78,6 +78,14 @@ function normalizeCategoryKey(value) {
     return (value || '').toLowerCase().replace(/[^a-z]/g, '');
 }
 
+function getTransactionDisplayCategory(transaction) {
+    const baseCategory = (transaction?.category || 'Sin categoria').trim() || 'Sin categoria';
+    if (baseCategory !== 'Efectivo') return baseCategory;
+    if (transaction?.type === 'ingreso') return 'Efectivo - Ingresos';
+    if (transaction?.type === 'egreso') return 'Efectivo - Egresos';
+    return baseCategory;
+}
+
 function getDashboardRange() {
     const select = document.getElementById('dashboard-range');
     const value = select?.value || 'ytd';
@@ -339,6 +347,7 @@ function appendTransactionRow(tbody, t, index, isGrouped) {
 
     const conceptPadding = isGrouped ? 'pl-10' : '';
     const isChecked = transactionSelection.has(t.id);
+    const displayCategory = getTransactionDisplayCategory(t);
     row.innerHTML = `
         <td class="px-6 py-4 w-4">
             <input type="checkbox" class="tx-checkbox rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" 
@@ -346,7 +355,7 @@ function appendTransactionRow(tbody, t, index, isGrouped) {
         </td>
         <td class="px-2 py-4 text-slate-500 font-medium">${t.date}</td>
         <td class="px-6 py-4">
-            <span class="bg-slate-100 text-slate-700 px-2 py-0.5 rounded text-[10px] font-bold">${t.category}</span>
+            <span class="bg-slate-100 text-slate-700 px-2 py-0.5 rounded text-[10px] font-bold">${displayCategory}</span>
         </td>
         <td class="px-6 py-4 font-semibold text-slate-800 ${conceptPadding}">
             <div>${t.concept}</div>
@@ -382,20 +391,39 @@ function renderGroupedTable(tbody, transactions) {
     transactions.forEach((t) => {
         const key = tableGrouping === 'type'
             ? (t.type || 'otro')
-            : (t.category || 'Sin categoria');
+            : getTransactionDisplayCategory(t);
         if (!groups.has(key)) groups.set(key, []);
         groups.get(key).push(t);
     });
 
     const orderMap = new Map(state.categories.map((c, i) => [c, i]));
+    const getCategorySortMeta = (category) => {
+        if (category === 'Efectivo - Ingresos') {
+            return {
+                order: orderMap.has('Efectivo') ? orderMap.get('Efectivo') : 999,
+                variant: 0
+            };
+        }
+        if (category === 'Efectivo - Egresos') {
+            return {
+                order: orderMap.has('Efectivo') ? orderMap.get('Efectivo') : 999,
+                variant: 1
+            };
+        }
+        return {
+            order: orderMap.has(category) ? orderMap.get(category) : 999,
+            variant: 2
+        };
+    };
     const entries = Array.from(groups.entries()).sort((a, b) => {
         if (tableGrouping === 'type') {
             const order = { ingreso: 0, egreso: 1, otro: 2 };
             return (order[a[0]] ?? 9) - (order[b[0]] ?? 9);
         }
-        const aOrder = orderMap.has(a[0]) ? orderMap.get(a[0]) : 999;
-        const bOrder = orderMap.has(b[0]) ? orderMap.get(b[0]) : 999;
-        if (aOrder !== bOrder) return aOrder - bOrder;
+        const aMeta = getCategorySortMeta(a[0]);
+        const bMeta = getCategorySortMeta(b[0]);
+        if (aMeta.order !== bMeta.order) return aMeta.order - bMeta.order;
+        if (aMeta.variant !== bMeta.variant) return aMeta.variant - bMeta.variant;
         return a[0].localeCompare(b[0]);
     });
 
