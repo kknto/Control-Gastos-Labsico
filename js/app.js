@@ -381,6 +381,53 @@ function renderSimpleWeeklyTable(monthKey, paidTransactions) {
     });
 }
 
+function renderSimpleTransactionsTable(transactions) {
+    const tbody = document.getElementById('summary-transactions-body');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    if (transactions.length === 0) {
+        const row = document.createElement('tr');
+        row.innerHTML = `<td class="px-4 py-4 text-sm text-slate-400" colspan="6">No hay movimientos registrados en este periodo.</td>`;
+        tbody.appendChild(row);
+        return;
+    }
+
+    const sorted = [...transactions].sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+    sorted.forEach((t) => {
+        const row = document.createElement('tr');
+        row.className = 'hover:bg-slate-50';
+        row.innerHTML = `
+            <td class="px-4 py-4 text-slate-500 font-medium">${t.date || '-'}</td>
+            <td class="px-4 py-4">
+                <span class="bg-slate-100 text-slate-700 px-2 py-0.5 rounded text-[10px] font-bold">${getTransactionDisplayCategory(t)}</span>
+            </td>
+            <td class="px-4 py-4 font-semibold text-slate-800">
+                <div>${t.concept || '-'}</div>
+                ${t.subtotal || t.iva ? `
+                    <div class="text-[9px] text-slate-400 font-normal mt-0.5">
+                        Sub: ${formatCurrency(t.subtotal || 0)} | IVA: ${formatCurrency(t.iva || 0)}
+                    </div>
+                ` : ''}
+            </td>
+            <td class="px-4 py-4 text-center">
+                <span class="text-[9px] font-black px-2 py-1 rounded ${t.type === 'ingreso' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}">
+                    ${t.type === 'ingreso' ? 'INGRESO' : 'EGRESO'}
+                </span>
+            </td>
+            <td class="px-4 py-4 text-center">
+                <span class="text-[9px] font-black px-2 py-1 rounded ${t.status === 'Pagado' ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}">
+                    ${(t.status || '').toUpperCase()}
+                </span>
+            </td>
+            <td class="px-4 py-4 text-right font-bold ${t.type === 'ingreso' ? 'text-emerald-600' : 'text-rose-600'}">
+                ${t.type === 'ingreso' ? '+' : '-'}${formatCurrency(t.amount || 0)}
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
 function renderSimpleProjection(referenceDate, paidTransactions, startingBalance) {
     const assumption = document.getElementById('summary-projection-assumption');
     const list = document.getElementById('summary-projection-list');
@@ -441,6 +488,7 @@ function renderSimpleSummary() {
     const monthRange = getMonthRangeFromKey(monthKey);
     const referenceDate = getMonthReferenceDate(monthKey);
     const monthLabel = formatMonthLabel(monthKey);
+    const monthTransactions = state.transactions.filter(t => isWithinRange(t.date, monthRange));
     const paidTransactions = state.transactions.filter(t => t.status === 'Pagado');
     const paidMonth = paidTransactions.filter(t => isWithinRange(t.date, monthRange));
     const pendingMonth = state.transactions.filter(t => t.status !== 'Pagado' && isWithinRange(t.date, monthRange));
@@ -518,6 +566,7 @@ function renderSimpleSummary() {
     renderSimpleRankingTable('summary-top-income-body', getCategoryRanking(paidMonth, 'ingreso'), 'No hay ingresos cobrados en este mes.');
     renderSimpleRankingTable('summary-top-expense-body', getCategoryRanking(paidMonth, 'egreso'), 'No hay egresos pagados en este mes.');
     renderSimpleProjection(referenceDate, paidTransactions, balance);
+    renderSimpleTransactionsTable(monthTransactions);
 
     const pendingIncomeEl = document.getElementById('summary-pending-income');
     const pendingExpenseEl = document.getElementById('summary-pending-expense');

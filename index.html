@@ -469,6 +469,34 @@
                         </div>
                     </div>
                 </div>
+
+                <div class="glass-card rounded-2xl shadow-sm overflow-hidden">
+                    <div
+                        class="px-6 py-4 border-b border-slate-100 flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-center bg-white">
+                        <div>
+                            <h4 class="font-black text-slate-800 flex items-center gap-2">
+                                <i data-lucide="table-properties" class="w-4 h-4 text-slate-700"></i>
+                                Tabla de ingresos y egresos
+                            </h4>
+                            <p class="text-xs text-slate-400 mt-1">Detalle de movimientos del mes seleccionado, en modo solo lectura.</p>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto max-h-[420px]">
+                        <table class="w-full text-left text-sm">
+                            <thead class="bg-slate-50 sticky top-0">
+                                <tr>
+                                    <th class="px-4 py-3 text-slate-500 uppercase text-[10px] font-black">Fecha</th>
+                                    <th class="px-4 py-3 text-slate-500 uppercase text-[10px] font-black">Categoria</th>
+                                    <th class="px-4 py-3 text-slate-500 uppercase text-[10px] font-black">Concepto</th>
+                                    <th class="px-4 py-3 text-slate-500 uppercase text-[10px] font-black text-center">Tipo</th>
+                                    <th class="px-4 py-3 text-slate-500 uppercase text-[10px] font-black text-center">Estado</th>
+                                    <th class="px-4 py-3 text-slate-500 uppercase text-[10px] font-black text-right">Monto</th>
+                                </tr>
+                            </thead>
+                            <tbody id="summary-transactions-body" class="divide-y divide-slate-100 bg-white"></tbody>
+                        </table>
+                    </div>
+                </div>
             </section>
 
             <section id="tab-registro" class="hidden space-y-6">
