@@ -2580,8 +2580,8 @@ async function updateUI() {
     renderSheetsList();
     renderSimpleSummary();
 
-    // Default to landing
-    showTab('landing');
+    // Default to the simple summary view for first-time/non-technical users.
+    showTab('summary');
 
     document.getElementById('dashboard-range')?.addEventListener('change', initCharts);
     document.getElementById('dashboard-view')?.addEventListener('change', initCharts);
