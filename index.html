@@ -58,6 +58,8 @@
             <button onclick="showTab('dashboard')" id="btn-dashboard"
                 class="py-4 px-2 text-sm transition-all text-slate-500 hover:text-slate-700">Análisis de
                 Supervivencia</button>
+            <button onclick="showTab('summary')" id="btn-summary"
+                class="py-4 px-2 text-sm transition-all text-slate-500 hover:text-slate-700">Resumen simple</button>
             <button onclick="showTab('registro')" id="btn-registro"
                 class="py-4 px-2 text-sm transition-all text-slate-500 hover:text-slate-700">Registro de Flujo</button>
             <button onclick="showTab('services')" id="btn-services"
@@ -286,6 +288,189 @@
             </section>
 
             <!-- SECCIÓN: REGISTRO -->
+            <section id="tab-summary" class="hidden space-y-6">
+                <div
+                    class="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 flex flex-col lg:flex-row gap-4 lg:items-center lg:justify-between">
+                    <div class="space-y-2">
+                        <div
+                            class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-50 text-sky-700 text-xs font-black uppercase tracking-[0.18em]">
+                            <i data-lucide="book-open-text" class="w-4 h-4"></i>
+                            Lectura simple
+                        </div>
+                        <div>
+                            <h2 class="text-2xl font-black text-slate-900">Resumen simple del negocio</h2>
+                            <p id="summary-month-note" class="text-sm text-slate-500">
+                                Una vista clara para entender que paso en el periodo sin lenguaje tecnico.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <button type="button" onclick="changeSimpleSummaryMonth(-1)"
+                            class="h-11 w-11 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 flex items-center justify-center shadow-sm">
+                            <i data-lucide="chevron-left" class="w-4 h-4"></i>
+                        </button>
+                        <div class="min-w-[210px] rounded-2xl bg-slate-900 text-white px-5 py-3 shadow-lg">
+                            <div class="text-[10px] uppercase tracking-[0.18em] text-slate-300 font-black">Periodo</div>
+                            <div id="summary-month-label" class="text-lg font-black">Mes actual</div>
+                        </div>
+                        <button type="button" onclick="changeSimpleSummaryMonth(1)"
+                            class="h-11 w-11 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 flex items-center justify-center shadow-sm">
+                            <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="glass-card p-5 rounded-2xl shadow-sm border-l-4 border-emerald-500">
+                        <p class="text-xs font-black text-slate-500 uppercase mb-1">Asi va tu mes: ingreso</p>
+                        <h3 id="summary-income" class="text-3xl font-black text-emerald-600">$0.00</h3>
+                        <p class="text-xs text-slate-400 mt-2">Dinero ya cobrado y marcado como pagado.</p>
+                    </div>
+                    <div class="glass-card p-5 rounded-2xl shadow-sm border-l-4 border-rose-500">
+                        <p class="text-xs font-black text-slate-500 uppercase mb-1">Asi va tu mes: egreso</p>
+                        <h3 id="summary-expense" class="text-3xl font-black text-rose-600">$0.00</h3>
+                        <p class="text-xs text-slate-400 mt-2">Dinero ya salido y registrado como pagado.</p>
+                    </div>
+                    <div class="glass-card p-5 rounded-2xl shadow-sm border-l-4 border-blue-500">
+                        <p class="text-xs font-black text-slate-500 uppercase mb-1">Saldo neto del mes</p>
+                        <h3 id="summary-net" class="text-3xl font-black text-slate-900">$0.00</h3>
+                        <p class="text-xs text-slate-400 mt-2">Lo que queda despues de restar egresos a ingresos.</p>
+                    </div>
+                </div>
+
+                <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 space-y-5">
+                    <div class="flex flex-col lg:flex-row gap-4 lg:items-start lg:justify-between">
+                        <div class="space-y-3">
+                            <div id="summary-status-badge"
+                                class="inline-flex items-center px-3 py-1 rounded-full text-xs font-black bg-slate-100 text-slate-700">
+                                Mes en observacion
+                            </div>
+                            <div>
+                                <h3 id="summary-headline" class="text-2xl font-black text-slate-900">Que significa esto</h3>
+                                <p id="summary-explanation" class="text-sm text-slate-500 mt-2 max-w-3xl">
+                                    Aqui veras una explicacion clara de como va el negocio en el periodo seleccionado.
+                                </p>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:min-w-[340px]">
+                            <div class="rounded-2xl bg-slate-50 border border-slate-200 p-4">
+                                <div class="text-[10px] uppercase tracking-[0.18em] text-slate-400 font-black">Dinero total disponible</div>
+                                <div id="summary-balance" class="text-2xl font-black text-slate-900 mt-2">$0.00</div>
+                                <p class="text-xs text-slate-500 mt-1">Saldo acumulado hasta la fecha de referencia.</p>
+                            </div>
+                            <div class="rounded-2xl bg-slate-50 border border-slate-200 p-4">
+                                <div class="text-[10px] uppercase tracking-[0.18em] text-slate-400 font-black">Semanas que podrias operar</div>
+                                <div id="summary-weeks-cover" class="text-2xl font-black text-slate-900 mt-2">0.0 semanas</div>
+                                <p class="text-xs text-slate-500 mt-1">Calculado con tus costos fijos actuales.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card p-6 rounded-2xl shadow-sm">
+                    <div class="flex items-center justify-between gap-4 mb-4">
+                        <div>
+                            <h4 class="font-black text-slate-800 flex items-center gap-2">
+                                <i data-lucide="calendar-range" class="w-4 h-4 text-blue-500"></i>
+                                Semana por semana
+                            </h4>
+                            <p class="text-xs text-slate-400 mt-1">Cada bloque muestra lo que entro, salio y dejo cada semana del mes.</p>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm">
+                            <thead class="bg-slate-50">
+                                <tr>
+                                    <th class="px-4 py-3 text-[10px] font-black uppercase text-slate-500">Semana</th>
+                                    <th class="px-4 py-3 text-[10px] font-black uppercase text-slate-500 text-right">Ingresos</th>
+                                    <th class="px-4 py-3 text-[10px] font-black uppercase text-slate-500 text-right">Egresos</th>
+                                    <th class="px-4 py-3 text-[10px] font-black uppercase text-slate-500 text-right">Resultado</th>
+                                </tr>
+                            </thead>
+                            <tbody id="summary-weekly-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                    <div class="glass-card p-6 rounded-2xl shadow-sm">
+                        <h4 class="font-black text-slate-800 flex items-center gap-2 mb-4">
+                            <i data-lucide="arrow-down-circle" class="w-4 h-4 text-emerald-500"></i>
+                            De donde entra el dinero
+                        </h4>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-sm">
+                                <thead class="bg-slate-50">
+                                    <tr>
+                                        <th class="px-4 py-3 text-[10px] font-black uppercase text-slate-500">Origen</th>
+                                        <th class="px-4 py-3 text-[10px] font-black uppercase text-slate-500 text-right">Monto</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="summary-top-income-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="glass-card p-6 rounded-2xl shadow-sm">
+                        <h4 class="font-black text-slate-800 flex items-center gap-2 mb-4">
+                            <i data-lucide="arrow-up-circle" class="w-4 h-4 text-rose-500"></i>
+                            En que se va el dinero
+                        </h4>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-sm">
+                                <thead class="bg-slate-50">
+                                    <tr>
+                                        <th class="px-4 py-3 text-[10px] font-black uppercase text-slate-500">Destino</th>
+                                        <th class="px-4 py-3 text-[10px] font-black uppercase text-slate-500 text-right">Monto</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="summary-top-expense-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                    <div class="glass-card p-6 rounded-2xl shadow-sm flex flex-col">
+                        <h4 class="font-black text-slate-800 flex items-center gap-2 mb-3">
+                            <i data-lucide="activity" class="w-4 h-4 text-blue-500"></i>
+                            Lo que viene
+                        </h4>
+                        <p id="summary-projection-assumption" class="text-xs text-slate-400 mb-4">
+                            Esta proyeccion toma como base el promedio semanal reciente.
+                        </p>
+                        <div class="flex-1 relative min-h-[240px]">
+                            <canvas id="summary-projection-chart"></canvas>
+                        </div>
+                        <div id="summary-projection-list" class="mt-4 space-y-2"></div>
+                    </div>
+                    <div class="glass-card p-6 rounded-2xl shadow-sm">
+                        <h4 class="font-black text-slate-800 flex items-center gap-2 mb-4">
+                            <i data-lucide="clock-3" class="w-4 h-4 text-amber-500"></i>
+                            Pendientes
+                        </h4>
+                        <p class="text-xs text-slate-400 mb-4">Dinero que aun no entra o no sale porque sigue marcado como pendiente.</p>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+                                <div class="text-[10px] font-black uppercase text-emerald-700">Por cobrar en transacciones</div>
+                                <div id="summary-pending-income" class="text-2xl font-black text-emerald-700 mt-2">$0.00</div>
+                            </div>
+                            <div class="rounded-2xl border border-rose-200 bg-rose-50 p-4">
+                                <div class="text-[10px] font-black uppercase text-rose-700">Por pagar en transacciones</div>
+                                <div id="summary-pending-expense" class="text-2xl font-black text-rose-700 mt-2">$0.00</div>
+                            </div>
+                            <div class="rounded-2xl border border-indigo-200 bg-indigo-50 p-4">
+                                <div class="text-[10px] font-black uppercase text-indigo-700">Servicios por cobrar</div>
+                                <div id="summary-pending-services" class="text-2xl font-black text-indigo-700 mt-2">$0.00</div>
+                            </div>
+                            <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                                <div class="text-[10px] font-black uppercase text-slate-600">Balance pendiente</div>
+                                <div id="summary-pending-net" class="text-2xl font-black text-slate-900 mt-2">$0.00</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             <section id="tab-registro" class="hidden space-y-6">
                 <div class="glass-card p-6 rounded-2xl shadow-sm">
                     <div class="flex justify-between items-center mb-4">

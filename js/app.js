@@ -10,9 +10,11 @@ let draggingSheetRowId = null;
 let barChartInstance = null;
 let fixedCostChartInstance = null;
 let projectionChartInstance = null;
+let simpleProjectionChartInstance = null;
 let tableGrouping = 'none';
 let groupExpandState = {};
 let transactionSelection = new Set();
+let simpleSummaryMonth = getMonthKey();
 
 // Date Filter State
 let dateFilter = {
@@ -127,6 +129,124 @@ function getDashboardRange() {
     return { start, end, label, type: value };
 }
 
+function getMonthKey(date = new Date()) {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function getMonthRangeFromKey(monthKey) {
+    const [year, month] = String(monthKey || getMonthKey()).split('-').map(Number);
+    const start = new Date(year, month - 1, 1);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(year, month, 0);
+    end.setHours(23, 59, 59, 999);
+    return { start, end };
+}
+
+function shiftMonthKey(monthKey, delta) {
+    const { start } = getMonthRangeFromKey(monthKey);
+    return getMonthKey(new Date(start.getFullYear(), start.getMonth() + delta, 1));
+}
+
+function formatMonthLabel(monthKey) {
+    const { start } = getMonthRangeFromKey(monthKey);
+    return start.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' });
+}
+
+function getMonthReferenceDate(monthKey) {
+    const { end } = getMonthRangeFromKey(monthKey);
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+    return end < today ? end : today;
+}
+
+function getMonthWeekBuckets(monthKey) {
+    const { start, end } = getMonthRangeFromKey(monthKey);
+    const buckets = [];
+    let cursorDay = 1;
+    let weekIndex = 1;
+    const monthShort = start.toLocaleDateString('es-MX', { month: 'short' });
+
+    while (cursorDay <= end.getDate()) {
+        const bucketStart = new Date(start.getFullYear(), start.getMonth(), cursorDay);
+        bucketStart.setHours(0, 0, 0, 0);
+        const bucketEnd = new Date(start.getFullYear(), start.getMonth(), Math.min(cursorDay + 6, end.getDate()));
+        bucketEnd.setHours(23, 59, 59, 999);
+        buckets.push({
+            label: `Semana ${weekIndex}`,
+            subtitle: `${bucketStart.getDate()}-${bucketEnd.getDate()} ${monthShort}`,
+            start: bucketStart,
+            end: bucketEnd
+        });
+        cursorDay += 7;
+        weekIndex += 1;
+    }
+
+    return buckets;
+}
+
+function sumTransactionsByType(transactions, type) {
+    return transactions
+        .filter(t => t.type === type)
+        .reduce((acc, t) => acc + (t.amount || 0), 0);
+}
+
+function getCategoryRanking(transactions, type, limit = 5) {
+    const totals = new Map();
+    transactions
+        .filter(t => t.type === type)
+        .forEach((t) => {
+            const key = getTransactionDisplayCategory(t);
+            totals.set(key, (totals.get(key) || 0) + (t.amount || 0));
+        });
+
+    return Array.from(totals.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, limit);
+}
+
+function buildProjectionFromReference(referenceDate, paidTransactions, startingBalance) {
+    const projectionWindow = 8;
+    const startProjection = new Date(referenceDate);
+    startProjection.setDate(referenceDate.getDate() - (projectionWindow * 7) + 1);
+    startProjection.setHours(0, 0, 0, 0);
+
+    const weeklyNetMap = new Map();
+    paidTransactions.forEach((t) => {
+        if (!isWithinRange(t.date, { start: startProjection, end: referenceDate })) return;
+        const weekStart = getWeekStart(parseTxDate(t.date));
+        const key = weekStart.toISOString().slice(0, 10);
+        const delta = t.type === 'ingreso' ? t.amount : -t.amount;
+        weeklyNetMap.set(key, (weeklyNetMap.get(key) || 0) + delta);
+    });
+
+    let netSum = 0;
+    let cursor = getWeekStart(startProjection);
+    for (let i = 0; i < projectionWindow; i++) {
+        const key = cursor.toISOString().slice(0, 10);
+        netSum += weeklyNetMap.get(key) || 0;
+        cursor = new Date(cursor);
+        cursor.setDate(cursor.getDate() + 7);
+    }
+
+    const weeklyNetAvg = netSum / projectionWindow;
+    const labels = ['Base'];
+    const data = [startingBalance];
+    let current = startingBalance;
+
+    for (let i = 1; i <= 8; i++) {
+        current += weeklyNetAvg;
+        labels.push(`+${i} sem`);
+        data.push(current);
+    }
+
+    return { labels, data, weeklyNetAvg };
+}
+
+function refreshOverviewTabs() {
+    initCharts();
+    renderSimpleSummary();
+}
+
 function showToast(message) {
     const toast = document.createElement('div');
     toast.className = "fixed bottom-4 right-4 bg-slate-800 text-white px-6 py-3 rounded-xl shadow-2xl z-50 animate-bounce";
@@ -164,7 +284,7 @@ function exportDashboardPdf() {
 
 // Navigation
 function showTab(tabId) {
-    ['landing', 'dashboard', 'registro', 'config', 'services', 'breakdown'].forEach(t => {
+    ['landing', 'dashboard', 'summary', 'registro', 'config', 'services', 'breakdown'].forEach(t => {
         const tab = document.getElementById(`tab-${t}`);
         const btn = document.getElementById(`btn-${t}`);
         if (tab) tab.classList.add('hidden');
@@ -180,7 +300,213 @@ function showTab(tabId) {
     if (activeBtn) activeBtn.classList.add('tab-active');
 
     if (tabId === 'dashboard') initCharts();
+    if (tabId === 'summary') renderSimpleSummary();
     if (tabId === 'breakdown') renderSheetsList();
+}
+
+function changeSimpleSummaryMonth(delta) {
+    simpleSummaryMonth = shiftMonthKey(simpleSummaryMonth, delta);
+    renderSimpleSummary();
+}
+
+function renderSimpleRankingTable(tbodyId, rows, emptyLabel) {
+    const tbody = document.getElementById(tbodyId);
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    if (rows.length === 0) {
+        const row = document.createElement('tr');
+        row.innerHTML = `<td class="px-4 py-3 text-sm text-slate-400" colspan="2">${emptyLabel}</td>`;
+        tbody.appendChild(row);
+        return;
+    }
+
+    rows.forEach(([label, amount]) => {
+        const row = document.createElement('tr');
+        row.className = 'border-b last:border-b-0';
+        row.innerHTML = `
+            <td class="px-4 py-3 font-semibold text-slate-700">${label}</td>
+            <td class="px-4 py-3 text-right font-bold text-slate-700">${formatCurrency(amount)}</td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+function renderSimpleWeeklyTable(monthKey, paidTransactions) {
+    const tbody = document.getElementById('summary-weekly-body');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    getMonthWeekBuckets(monthKey).forEach((bucket) => {
+        const bucketTx = paidTransactions.filter(t => isWithinRange(t.date, bucket));
+        const income = sumTransactionsByType(bucketTx, 'ingreso');
+        const expense = sumTransactionsByType(bucketTx, 'egreso');
+        const net = income - expense;
+
+        const row = document.createElement('tr');
+        row.className = 'border-b last:border-b-0';
+        row.innerHTML = `
+            <td class="px-4 py-3">
+                <div class="font-bold text-slate-700">${bucket.label}</div>
+                <div class="text-xs text-slate-400">${bucket.subtitle}</div>
+            </td>
+            <td class="px-4 py-3 text-right font-bold text-emerald-600">${formatCurrency(income)}</td>
+            <td class="px-4 py-3 text-right font-bold text-rose-600">${formatCurrency(expense)}</td>
+            <td class="px-4 py-3 text-right font-bold ${net >= 0 ? 'text-emerald-600' : 'text-rose-600'}">${formatCurrency(net)}</td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+function renderSimpleProjection(referenceDate, paidTransactions, startingBalance) {
+    const assumption = document.getElementById('summary-projection-assumption');
+    const list = document.getElementById('summary-projection-list');
+    const canvas = document.getElementById('summary-projection-chart');
+    if (!assumption || !list || !canvas) return;
+
+    const projection = buildProjectionFromReference(referenceDate, paidTransactions, startingBalance);
+    assumption.textContent = `Promedio semanal reciente: ${projection.weeklyNetAvg >= 0 ? '+' : '-'}${formatCurrency(Math.abs(projection.weeklyNetAvg))}. La proyeccion parte del saldo disponible en esta fecha.`;
+    list.innerHTML = '';
+
+    for (let i = 1; i < projection.labels.length; i++) {
+        const row = document.createElement('div');
+        row.className = 'flex items-center justify-between text-sm border-b border-slate-100 pb-2 last:border-b-0';
+        row.innerHTML = `
+            <span class="text-slate-500">${projection.labels[i]}</span>
+            <span class="font-black ${projection.data[i] >= 0 ? 'text-emerald-600' : 'text-rose-600'}">${formatCurrency(projection.data[i])}</span>
+        `;
+        list.appendChild(row);
+    }
+
+    if (simpleProjectionChartInstance) simpleProjectionChartInstance.destroy();
+    simpleProjectionChartInstance = new Chart(canvas, {
+        type: 'line',
+        data: {
+            labels: projection.labels,
+            datasets: [{
+                label: 'Proyeccion simple',
+                data: projection.data,
+                borderColor: '#0284c7',
+                backgroundColor: 'rgba(2, 132, 199, 0.12)',
+                fill: true,
+                tension: 0.28,
+                pointRadius: 3
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: {
+                    ticks: {
+                        callback: value => formatCurrency(value)
+                    }
+                }
+            }
+        }
+    });
+}
+
+function renderSimpleSummary() {
+    const tab = document.getElementById('tab-summary');
+    if (!tab) return;
+
+    const monthKey = simpleSummaryMonth || getMonthKey();
+    const monthRange = getMonthRangeFromKey(monthKey);
+    const referenceDate = getMonthReferenceDate(monthKey);
+    const monthLabel = formatMonthLabel(monthKey);
+    const paidTransactions = state.transactions.filter(t => t.status === 'Pagado');
+    const paidMonth = paidTransactions.filter(t => isWithinRange(t.date, monthRange));
+    const pendingMonth = state.transactions.filter(t => t.status !== 'Pagado' && isWithinRange(t.date, monthRange));
+    const paidUntilReference = paidTransactions.filter(t => parseTxDate(t.date) <= referenceDate);
+
+    const income = sumTransactionsByType(paidMonth, 'ingreso');
+    const expense = sumTransactionsByType(paidMonth, 'egreso');
+    const net = income - expense;
+    const balance = paidUntilReference.reduce((acc, t) => acc + (t.type === 'ingreso' ? t.amount : -t.amount), 0);
+    const weeklyFixed = (state.fixedCosts.payrollWeekly || 0) +
+        ((state.fixedCosts.trucksMonthly || 0) +
+            (state.fixedCosts.servicesMonthly || 0) +
+            (state.fixedCosts.rentMonthly || 0) +
+            (state.fixedCosts.taxesMonthly || 0)) / 4.33;
+    const weeksCover = weeklyFixed > 0 ? balance / weeklyFixed : null;
+
+    const pendingIncome = sumTransactionsByType(pendingMonth, 'ingreso');
+    const pendingExpense = sumTransactionsByType(pendingMonth, 'egreso');
+    const pendingServices = state.services
+        .filter((s) => {
+            const status = (s.status || s.payment_status || '').toLowerCase();
+            const nextDate = s.next_billing_date || s.next_payment_date;
+            return status !== 'pagado' && nextDate && isWithinRange(nextDate, monthRange);
+        })
+        .reduce((acc, s) => acc + (s.monthly_amount || 0), 0);
+    const pendingNet = pendingIncome + pendingServices - pendingExpense;
+
+    const monthLabelEl = document.getElementById('summary-month-label');
+    const monthNoteEl = document.getElementById('summary-month-note');
+    if (monthLabelEl) monthLabelEl.textContent = monthLabel;
+    if (monthNoteEl) monthNoteEl.textContent = `Lectura simple de lo cobrado, lo pagado y lo pendiente en ${monthLabel}.`;
+
+    const incomeEl = document.getElementById('summary-income');
+    const expenseEl = document.getElementById('summary-expense');
+    const netEl = document.getElementById('summary-net');
+    const balanceEl = document.getElementById('summary-balance');
+    const weeksEl = document.getElementById('summary-weeks-cover');
+    if (incomeEl) incomeEl.textContent = formatCurrency(income);
+    if (expenseEl) expenseEl.textContent = formatCurrency(expense);
+    if (netEl) {
+        netEl.textContent = formatCurrency(net);
+        netEl.className = `text-3xl font-black ${net > 0 ? 'text-emerald-600' : net < 0 ? 'text-rose-600' : 'text-slate-900'}`;
+    }
+    if (balanceEl) balanceEl.textContent = formatCurrency(balance);
+    if (weeksEl) weeksEl.textContent = weeksCover === null ? 'Sin referencia' : `${Math.max(0, weeksCover).toFixed(1)} semanas`;
+
+    const badgeEl = document.getElementById('summary-status-badge');
+    const headlineEl = document.getElementById('summary-headline');
+    const explanationEl = document.getElementById('summary-explanation');
+    if (badgeEl && headlineEl && explanationEl) {
+        if (income === 0 && expense === 0 && pendingIncome === 0 && pendingExpense === 0 && pendingServices === 0) {
+            badgeEl.className = 'inline-flex items-center px-3 py-1 rounded-full text-xs font-black bg-slate-100 text-slate-700';
+            badgeEl.textContent = 'Mes sin movimientos';
+            headlineEl.textContent = 'Todavia no hay actividad registrada';
+            explanationEl.textContent = `En ${monthLabel} no hay ingresos, egresos ni pendientes registrados. Cuando captures movimientos, aqui veras la lectura simple del negocio.`;
+        } else if (net > 0) {
+            badgeEl.className = 'inline-flex items-center px-3 py-1 rounded-full text-xs font-black bg-emerald-100 text-emerald-700';
+            badgeEl.textContent = 'Mes favorable';
+            headlineEl.textContent = 'Entro mas dinero del que salio';
+            explanationEl.textContent = `En ${monthLabel}, el negocio dejo ${formatCurrency(net)} despues de cubrir ${formatCurrency(expense)} en egresos. ${weeksCover !== null && weeksCover < 4 ? 'La liquidez sigue apretada, asi que conviene vigilar cobros y gastos de cerca.' : 'La operacion tiene un comportamiento sano en el periodo seleccionado.'}`;
+        } else if (net < 0) {
+            badgeEl.className = 'inline-flex items-center px-3 py-1 rounded-full text-xs font-black bg-rose-100 text-rose-700';
+            badgeEl.textContent = 'Mes en alerta';
+            headlineEl.textContent = 'Salio mas dinero del que entro';
+            explanationEl.textContent = `En ${monthLabel}, el negocio va abajo por ${formatCurrency(Math.abs(net))}. Conviene revisar que gasto empujo la salida de dinero y cuanto dinero pendiente podria entrar para compensarlo.`;
+        } else {
+            badgeEl.className = 'inline-flex items-center px-3 py-1 rounded-full text-xs font-black bg-amber-100 text-amber-700';
+            badgeEl.textContent = 'Mes parejo';
+            headlineEl.textContent = 'Ingresos y egresos quedaron equilibrados';
+            explanationEl.textContent = `En ${monthLabel}, entro y salio practicamente el mismo dinero. El siguiente movimiento importante puede inclinar el resultado del mes.`;
+        }
+    }
+
+    renderSimpleWeeklyTable(monthKey, paidMonth);
+    renderSimpleRankingTable('summary-top-income-body', getCategoryRanking(paidMonth, 'ingreso'), 'No hay ingresos cobrados en este mes.');
+    renderSimpleRankingTable('summary-top-expense-body', getCategoryRanking(paidMonth, 'egreso'), 'No hay egresos pagados en este mes.');
+    renderSimpleProjection(referenceDate, paidTransactions, balance);
+
+    const pendingIncomeEl = document.getElementById('summary-pending-income');
+    const pendingExpenseEl = document.getElementById('summary-pending-expense');
+    const pendingServicesEl = document.getElementById('summary-pending-services');
+    const pendingNetEl = document.getElementById('summary-pending-net');
+    if (pendingIncomeEl) pendingIncomeEl.textContent = formatCurrency(pendingIncome);
+    if (pendingExpenseEl) pendingExpenseEl.textContent = formatCurrency(pendingExpense);
+    if (pendingServicesEl) pendingServicesEl.textContent = formatCurrency(pendingServices);
+    if (pendingNetEl) {
+        pendingNetEl.textContent = formatCurrency(pendingNet);
+        pendingNetEl.className = `text-2xl font-black mt-2 ${pendingNet >= 0 ? 'text-emerald-600' : 'text-rose-600'}`;
+    }
 }
 
 // Transactions
@@ -212,7 +538,7 @@ async function saveTransaction() {
 
     clearTxForm();
     renderTable();
-    initCharts();
+    refreshOverviewTabs();
     showToast("Transacción guardada");
 }
 
@@ -271,7 +597,7 @@ async function deleteTransaction(id) {
     if (confirm("¿Eliminar esta transacción?")) {
         await API.deleteTransaction(id);
         renderTable();
-        initCharts();
+        refreshOverviewTabs();
         showToast("Transacción eliminada");
     }
 }
@@ -284,7 +610,7 @@ async function deleteBatchTransactions() {
         transactionSelection.clear();
         updateBulkDeleteButton();
         renderTable();
-        initCharts();
+        refreshOverviewTabs();
         showToast(`${ids.length} transacciones eliminadas`);
     }
 }
@@ -677,7 +1003,7 @@ document.getElementById('paymentForm')?.addEventListener('submit', async (e) => 
     closePaymentModal();
     renderServices();
     renderTable();
-    initCharts();
+    refreshOverviewTabs();
     showToast("Pago registrado");
 });
 
@@ -888,7 +1214,7 @@ async function saveFixedCosts() {
 
 async function updateFixedCosts() {
     await saveFixedCosts();
-    initCharts();
+    refreshOverviewTabs();
 }
 
 // Dashboard Charts
@@ -1537,7 +1863,7 @@ async function handleIncomeCsvFile(event) {
 
     await API.loadState();
     renderTable();
-    initCharts();
+    refreshOverviewTabs();
     showToast(`${rows.length} ingresos importados`);
     event.target.value = '';
 }
@@ -1600,7 +1926,7 @@ async function handleExpenseCsvFile(event) {
 
     await API.loadState();
     renderTable();
-    initCharts();
+    refreshOverviewTabs();
     showToast(`${rows.length} egresos importados`);
     event.target.value = '';
 }
@@ -2252,6 +2578,7 @@ async function updateUI() {
     renderServices();
     renderConfigCategories();
     renderSheetsList();
+    renderSimpleSummary();
 
     // Default to landing
     showTab('landing');
