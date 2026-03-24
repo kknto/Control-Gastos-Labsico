@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Acceso Seguro | Labsicorp</title>
+    <title>Entrar | Labsicorp</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="stylesheet" href="css/styles.css">
@@ -26,33 +26,33 @@
             <div class="login-panel">
                 <div class="login-kicker">
                     <i data-lucide="shield-check" class="w-4 h-4"></i>
-                    Labsicorp Secure Access
+                    Bienvenido a Labsicorp
                 </div>
                 <h1 class="login-title">
-                    Controla la caja.
-                    <span>Impresiona al entrar.</span>
+                    Entra sin complicarte.
+                    <span>Ve el negocio con claridad.</span>
                 </h1>
                 <p class="login-copy">
-                    Accede al panel corporativo con una puerta de entrada mas fuerte, mas teatral y mucho mas clara.
-                    Una sola cuenta administradora, sesion protegida en servidor y acceso completo al tablero.
+                    Usa tu acceso para entrar al sistema. Hay perfiles para administrar toda la informacion
+                    y perfiles pensados solo para consultar el resumen simple del negocio.
                 </p>
 
                 <div class="login-grid">
                     <div class="login-stat">
-                        <div class="login-stat-label">Modo</div>
-                        <div class="login-stat-value">Admin Vault</div>
+                        <div class="login-stat-label">Lectura</div>
+                        <div class="login-stat-value">Resumen claro</div>
                     </div>
                     <div class="login-stat">
-                        <div class="login-stat-label">Seguridad</div>
-                        <div class="login-stat-value">Sesion + hash</div>
+                        <div class="login-stat-label">Periodo</div>
+                        <div class="login-stat-value">Mes y semanas</div>
                     </div>
                     <div class="login-stat">
                         <div class="login-stat-label">Acceso</div>
-                        <div class="login-stat-value">Perfil unico</div>
+                        <div class="login-stat-value">Admin o consulta</div>
                     </div>
                     <div class="login-stat">
-                        <div class="login-stat-label">Estado</div>
-                        <div class="login-stat-value">Listo para operar</div>
+                        <div class="login-stat-label">Objetivo</div>
+                        <div class="login-stat-value">Entender rapido</div>
                     </div>
                 </div>
             </div>
@@ -63,14 +63,15 @@
                 <div class="login-card-header">
                     <span class="login-badge">
                         <i data-lucide="lock-keyhole" class="w-4 h-4"></i>
-                        Solo Administrador
+                        Acceso personalizado
                     </span>
                     <i data-lucide="sparkles" class="w-5 h-5 text-sky-300"></i>
                 </div>
 
-                <h2 class="login-card-title">Iniciar sesion</h2>
+                <h2 class="login-card-title">Entrar al sistema</h2>
                 <p class="login-card-copy">
-                    Usa la cuenta administradora para entrar al panel protegido. El acceso fallido repetido se bloquea temporalmente.
+                    Escribe tu usuario y contrasena. Si tu perfil es de consulta, entraras directo a la vista
+                    de Resumen simple.
                 </p>
 
                 <form id="login-form" novalidate>
@@ -78,7 +79,7 @@
                         <label for="login-username">Usuario</label>
                         <div class="login-input-wrap">
                             <i data-lucide="user-round" class="login-input-icon w-4 h-4"></i>
-                            <input id="login-username" name="username" type="text" autocomplete="username" placeholder="admin.labsico" required>
+                            <input id="login-username" name="username" type="text" autocomplete="username" placeholder="Tu usuario" required>
                         </div>
                     </div>
 
@@ -86,7 +87,7 @@
                         <label for="login-password">Contrasena</label>
                         <div class="login-input-wrap">
                             <i data-lucide="key-round" class="login-input-icon w-4 h-4"></i>
-                            <input id="login-password" name="password" type="password" autocomplete="current-password" placeholder="Ingresa tu acceso" required>
+                            <input id="login-password" name="password" type="password" autocomplete="current-password" placeholder="Tu contrasena" required>
                             <button id="toggle-password" class="login-eye-btn" type="button" aria-label="Mostrar u ocultar contrasena">
                                 <i data-lucide="eye" class="w-4 h-4"></i>
                             </button>
@@ -94,14 +95,14 @@
                     </div>
 
                     <button id="login-submit" class="login-submit" type="submit">
-                        Entrar al centro de control
+                        Entrar
                     </button>
                     <p id="login-error" class="login-error" role="alert"></p>
                 </form>
 
                 <div class="login-footnote">
-                    <span>Sesion administrada en servidor Flask con cookies `HttpOnly` y `SameSite=Lax`.</span>
-                    <span>Render puede reforzarlo aun mas con `SECRET_KEY` y `ADMIN_PASSWORD_HASH` en variables de entorno.</span>
+                    <span>Administrador: acceso completo a captura, configuracion y analisis.</span>
+                    <span>Consulta: acceso solo a Resumen simple para revisar el estado del negocio.</span>
                 </div>
             </div>
         </section>

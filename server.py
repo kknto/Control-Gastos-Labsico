@@ -12,6 +12,11 @@ DEFAULT_ADMIN_PASSWORD_HASH = os.environ.get(
     'ADMIN_PASSWORD_HASH',
     'scrypt:32768:8:1$EVoco5zwwzEZlwSf$b54b0d20afc72314f59b4720a2612f58bf6801d7842930d44554ca4e9cfa2ea3b29cba8594731a96e5ae735ea02560ef917d98ca8594ab95d663f70db42404ff',
 )
+DEFAULT_SUMMARY_USERNAME = os.environ.get('SUMMARY_USERNAME', 'resumen.labsico')
+DEFAULT_SUMMARY_PASSWORD_HASH = os.environ.get(
+    'SUMMARY_PASSWORD_HASH',
+    'scrypt:32768:8:1$fBm1H23G2JNEgihe$7a9e9912af5661a8dabbce558a0d6e967f34751313e7029a215c2d6f68adce70b69ed59c1678744519e77aa11aff62bafda16fbc4741a812b951530b87fd761c',
+)
 LOGIN_WINDOW_SECONDS = 10 * 60
 LOGIN_MAX_ATTEMPTS = 5
 PUBLIC_PATHS = {
@@ -28,6 +33,20 @@ PUBLIC_PREFIXES = (
 )
 
 login_attempts = {}
+LOGIN_USERS = (
+    {
+        'username': DEFAULT_ADMIN_USERNAME,
+        'password_hash': DEFAULT_ADMIN_PASSWORD_HASH,
+        'name': 'Administrador',
+        'role': 'admin',
+    },
+    {
+        'username': DEFAULT_SUMMARY_USERNAME,
+        'password_hash': DEFAULT_SUMMARY_PASSWORD_HASH,
+        'name': 'Consulta',
+        'role': 'summary_viewer',
+    },
+)
 
 app = Flask(__name__, static_folder='.', static_url_path='')
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or os.environ.get('FLASK_SECRET_KEY') or DEFAULT_ADMIN_PASSWORD_HASH
@@ -104,14 +123,22 @@ def is_authenticated():
     return bool(session.get('user'))
 
 
+def current_user():
+    return session.get('user') or {}
+
+
+def current_user_role():
+    return current_user().get('role', '')
+
+
 def current_user_payload():
-    user = session.get('user')
+    user = current_user()
     if not user:
         return None
     return {
-        'username': user.get('username', DEFAULT_ADMIN_USERNAME),
-        'name': user.get('name', 'Administrador'),
-        'role': user.get('role', 'admin'),
+        'username': user.get('username', ''),
+        'name': user.get('name', 'Usuario'),
+        'role': user.get('role', ''),
     }
 
 
@@ -125,6 +152,31 @@ def unauthorized_response():
     if request.path.startswith('/api/'):
         return jsonify({'error': 'authentication_required'}), 401
     return redirect(url_for('login'))
+
+
+def forbidden_response():
+    if request.path.startswith('/api/'):
+        return jsonify({'error': 'summary_only_access'}), 403
+    return redirect(url_for('index'))
+
+
+def require_admin_access():
+    if current_user_role() == 'admin':
+        return None
+    return forbidden_response()
+
+
+def authenticate_user(username, password):
+    for user in LOGIN_USERS:
+        if username != user['username']:
+            continue
+        if check_password_hash(user['password_hash'], password):
+            return {
+                'username': user['username'],
+                'name': user['name'],
+                'role': user['role'],
+            }
+    return None
 
 
 @app.before_request
@@ -172,18 +224,14 @@ def login_api():
     username = str(payload.get('username', '')).strip()
     password = str(payload.get('password', ''))
 
-    is_valid = username == DEFAULT_ADMIN_USERNAME and check_password_hash(DEFAULT_ADMIN_PASSWORD_HASH, password)
-    if not is_valid:
+    authenticated_user = authenticate_user(username, password)
+    if not authenticated_user:
         register_login_failure(client_key)
         return jsonify({'error': 'invalid_credentials'}), 401
 
     clear_login_failures(client_key)
     session.permanent = True
-    session['user'] = {
-        'username': DEFAULT_ADMIN_USERNAME,
-        'name': 'Administrador',
-        'role': 'admin',
-    }
+    session['user'] = authenticated_user
     return jsonify({'success': True, 'user': current_user_payload()})
 
 
@@ -208,6 +256,9 @@ def get_transactions():
 
 @app.route('/api/transactions', methods=['POST'])
 def create_transaction():
+    blocked = require_admin_access()
+    if blocked:
+        return blocked
     data = request.json
     new_id = db.add_transaction(data)
     data['id'] = new_id
@@ -216,6 +267,9 @@ def create_transaction():
 
 @app.route('/api/transactions/<int:tx_id>', methods=['PUT'])
 def update_transaction(tx_id):
+    blocked = require_admin_access()
+    if blocked:
+        return blocked
     data = request.json
     db.update_transaction(tx_id, data)
     return jsonify({'success': True})
@@ -223,12 +277,18 @@ def update_transaction(tx_id):
 
 @app.route('/api/transactions/<int:tx_id>', methods=['DELETE'])
 def delete_transaction(tx_id):
+    blocked = require_admin_access()
+    if blocked:
+        return blocked
     db.delete_transaction(tx_id)
     return jsonify({'success': True})
 
 
 @app.route('/api/transactions/bulk', methods=['DELETE'])
 def delete_transactions_bulk():
+    blocked = require_admin_access()
+    if blocked:
+        return blocked
     ids = request.json.get('ids', [])
     if ids:
         db.delete_transactions_bulk(ids)
@@ -242,6 +302,9 @@ def get_settings():
 
 @app.route('/api/settings/<key>', methods=['POST'])
 def save_setting(key):
+    blocked = require_admin_access()
+    if blocked:
+        return blocked
     value = request.json
     db.update_setting(key, value)
     return jsonify({'success': True})
@@ -255,6 +318,9 @@ def get_services():
 
 @app.route('/api/services', methods=['POST'])
 def add_service():
+    blocked = require_admin_access()
+    if blocked:
+        return blocked
     data = normalize_service_in(request.json)
     new_id = db.add_service(data)
     data['id'] = new_id
@@ -263,6 +329,9 @@ def add_service():
 
 @app.route('/api/services/<int:service_id>', methods=['PUT'])
 def update_service(service_id):
+    blocked = require_admin_access()
+    if blocked:
+        return blocked
     data = normalize_service_in(request.json)
     db.update_service(service_id, data)
     return jsonify({'success': True})
@@ -270,17 +339,26 @@ def update_service(service_id):
 
 @app.route('/api/services/<int:service_id>', methods=['DELETE'])
 def delete_service(service_id):
+    blocked = require_admin_access()
+    if blocked:
+        return blocked
     db.delete_service(service_id)
     return jsonify({'success': True})
 
 
 @app.route('/api/sheets', methods=['GET'])
 def get_sheets():
+    blocked = require_admin_access()
+    if blocked:
+        return blocked
     return jsonify(db.get_sheets())
 
 
 @app.route('/api/sheets', methods=['POST'])
 def create_sheet():
+    blocked = require_admin_access()
+    if blocked:
+        return blocked
     data = request.json
     new_id = db.create_sheet(data)
     data['id'] = new_id
@@ -289,17 +367,26 @@ def create_sheet():
 
 @app.route('/api/sheets/<int:sheet_id>', methods=['DELETE'])
 def delete_sheet(sheet_id):
+    blocked = require_admin_access()
+    if blocked:
+        return blocked
     db.delete_sheet(sheet_id)
     return jsonify({'success': True})
 
 
 @app.route('/api/sheets/<int:sheet_id>/rows', methods=['GET'])
 def get_sheet_rows(sheet_id):
+    blocked = require_admin_access()
+    if blocked:
+        return blocked
     return jsonify(db.get_sheet_rows(sheet_id))
 
 
 @app.route('/api/sheet-rows', methods=['POST'])
 def add_sheet_row():
+    blocked = require_admin_access()
+    if blocked:
+        return blocked
     data = request.json
     new_id = db.add_sheet_row(data)
     data['id'] = new_id
@@ -308,6 +395,9 @@ def add_sheet_row():
 
 @app.route('/api/sheet-rows/<int:row_id>', methods=['PUT'])
 def update_sheet_row(row_id):
+    blocked = require_admin_access()
+    if blocked:
+        return blocked
     data = request.json
     db.update_sheet_row(row_id, data)
     return jsonify({'success': True})
@@ -315,6 +405,9 @@ def update_sheet_row(row_id):
 
 @app.route('/api/sheet-rows/<int:row_id>', methods=['DELETE'])
 def delete_sheet_row(row_id):
+    blocked = require_admin_access()
+    if blocked:
+        return blocked
     db.delete_sheet_row(row_id)
     return jsonify({'success': True})
 

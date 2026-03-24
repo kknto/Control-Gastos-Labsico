@@ -15,6 +15,7 @@ let tableGrouping = 'none';
 let groupExpandState = {};
 let transactionSelection = new Set();
 let simpleSummaryMonth = getMonthKey();
+let currentSessionData = null;
 
 // Date Filter State
 let dateFilter = {
@@ -247,6 +248,24 @@ function refreshOverviewTabs() {
     renderSimpleSummary();
 }
 
+function currentUserRole() {
+    return currentSessionData?.user?.role || 'admin';
+}
+
+function isSummaryViewer() {
+    return currentUserRole() === 'summary_viewer';
+}
+
+function applyRoleVisibility() {
+    const summaryOnly = isSummaryViewer();
+    const restrictedButtons = ['btn-landing', 'btn-dashboard', 'btn-registro', 'btn-services', 'btn-breakdown', 'btn-config', 'btn-export-data'];
+    restrictedButtons.forEach((id) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.classList.toggle('hidden', summaryOnly);
+    });
+}
+
 function showToast(message) {
     const toast = document.createElement('div');
     toast.className = "fixed bottom-4 right-4 bg-slate-800 text-white px-6 py-3 rounded-xl shadow-2xl z-50 animate-bounce";
@@ -284,6 +303,10 @@ function exportDashboardPdf() {
 
 // Navigation
 function showTab(tabId) {
+    if (isSummaryViewer() && tabId !== 'summary') {
+        tabId = 'summary';
+    }
+
     ['landing', 'dashboard', 'summary', 'registro', 'config', 'services', 'breakdown'].forEach(t => {
         const tab = document.getElementById(`tab-${t}`);
         const btn = document.getElementById(`btn-${t}`);
@@ -2765,5 +2788,57 @@ function updateFilteredSummary(transactions) {
 }
 
 function toggleServiceFields() { }
+
+function renderSessionHeader(sessionData) {
+    const currentDate = document.getElementById('current-date');
+    if (currentDate) {
+        currentDate.textContent = new Date().toLocaleDateString('es-MX', {
+            weekday: 'short',
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric'
+        });
+    }
+
+    const userBadge = document.getElementById('current-user');
+    if (userBadge) {
+        const name = sessionData?.user?.name || 'Administrador';
+        const role = sessionData?.user?.role === 'summary_viewer' ? 'RESUMEN' : 'ADMIN';
+        userBadge.textContent = `${name} · ${role}`;
+    }
+}
+
+async function updateUI() {
+    const sessionData = await API.loadSession();
+    currentSessionData = sessionData;
+    const success = await API.loadState(currentUserRole());
+    if (!success) return;
+
+    renderSessionHeader(sessionData);
+    applyRoleVisibility();
+
+    if (document.getElementById('cfg-payroll')) document.getElementById('cfg-payroll').value = state.fixedCosts.payrollWeekly || 0;
+    if (document.getElementById('cfg-trucks')) document.getElementById('cfg-trucks').value = state.fixedCosts.trucksMonthly || 0;
+    if (document.getElementById('cfg-services')) document.getElementById('cfg-services').value = state.fixedCosts.servicesMonthly || 0;
+    if (document.getElementById('cfg-rent')) document.getElementById('cfg-rent').value = state.fixedCosts.rentMonthly || 0;
+    if (document.getElementById('cfg-taxes')) document.getElementById('cfg-taxes').value = state.fixedCosts.taxesMonthly || 0;
+
+    if (document.getElementById('input-fecha')) document.getElementById('input-fecha').valueAsDate = new Date();
+
+    renderTable();
+    renderServices();
+    renderConfigCategories();
+    renderSheetsList();
+    renderSimpleSummary();
+
+    showTab('summary');
+
+    document.getElementById('dashboard-range')?.addEventListener('change', initCharts);
+    document.getElementById('dashboard-view')?.addEventListener('change', initCharts);
+    document.getElementById('csv-file')?.addEventListener('change', handleCsvFile);
+    document.getElementById('income-csv-file')?.addEventListener('change', handleIncomeCsvFile);
+    document.getElementById('expense-csv-file')?.addEventListener('change', handleExpenseCsvFile);
+    if (window.lucide) lucide.createIcons();
+}
 
 window.onload = updateUI;

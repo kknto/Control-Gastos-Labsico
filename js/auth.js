@@ -19,7 +19,7 @@ function setSubmitting(isSubmitting) {
     const submitBtn = document.getElementById('login-submit');
     if (!submitBtn) return;
     submitBtn.disabled = isSubmitting;
-    submitBtn.textContent = isSubmitting ? 'Verificando acceso...' : 'Entrar al centro de control';
+    submitBtn.textContent = isSubmitting ? 'Entrando...' : 'Entrar';
 }
 
 function bindPasswordToggle() {
@@ -62,10 +62,10 @@ function bindLoginForm() {
                 return;
             }
 
-            setLoginError('Usuario o contrasena incorrectos.');
+            setLoginError('No pudimos entrar con esos datos. Revisa usuario y contrasena.');
         } catch (error) {
             console.error('Error al iniciar sesion:', error);
-            setLoginError('No se pudo conectar con el servidor.');
+            setLoginError('No se pudo conectar con el sistema en este momento.');
         } finally {
             setSubmitting(false);
         }

@@ -26,22 +26,36 @@ async function apiFetch(url, options = {}) {
         throw new Error('authentication_required');
     }
 
+    if (response.status === 403) {
+        const data = await response.clone().json().catch(() => ({}));
+        if (data?.error === 'summary_only_access') {
+            if (typeof showToast === 'function') showToast('Este usuario solo puede ver el resumen simple');
+            if (typeof showTab === 'function') showTab('summary');
+        }
+        throw new Error(data?.error || 'forbidden');
+    }
+
     return response;
 }
 
 const API = {
-    async loadState() {
+    async loadState(userRole = 'admin') {
         try {
-            const [txRes, settingsRes, svcRes, sheetsRes] = await Promise.all([
+            const requests = [
                 apiFetch('/api/transactions'),
                 apiFetch('/api/settings'),
-                apiFetch('/api/services'),
-                apiFetch('/api/sheets')
-            ]);
+                apiFetch('/api/services')
+            ];
+            if (userRole === 'admin') {
+                requests.push(apiFetch('/api/sheets'));
+            }
+
+            const [txRes, settingsRes, svcRes, sheetsRes] = await Promise.all(requests);
 
             state.transactions = await txRes.json();
             state.services = (await svcRes.json()).map(normalizeService);
-            state.sheets = await sheetsRes.json();
+            state.sheets = sheetsRes ? await sheetsRes.json() : [];
+            if (userRole !== 'admin') state.currentSheetRows = [];
             const settings = await settingsRes.json();
 
             state.categories = settings.categories && settings.categories.length > 0
