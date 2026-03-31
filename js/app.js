@@ -2749,10 +2749,8 @@ function applyCustomFilter() {
         return;
     }
 
-    const start = new Date(startInput.value);
-    start.setHours(0, 0, 0, 0);
-
-    const end = new Date(endInput.value);
+    const start = parseTxDate(startInput.value);
+    const end = parseTxDate(endInput.value);
     end.setHours(23, 59, 59, 999);
 
     if (start > end) {
