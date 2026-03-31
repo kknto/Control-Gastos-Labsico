@@ -494,7 +494,13 @@ function renderSimpleSummary() {
     const pendingMonth = state.transactions.filter(t => t.status !== 'Pagado' && isWithinRange(t.date, monthRange));
     const paidUntilReference = paidTransactions.filter(t => parseTxDate(t.date) <= referenceDate);
 
-    const income = sumTransactionsByType(paidMonth, 'ingreso');
+    const fiscalIncome = paidMonth
+        .filter((t) => t.type === 'ingreso' && !isCashTransaction(t))
+        .reduce((acc, t) => acc + (t.amount || 0), 0);
+    const cashIncome = paidMonth
+        .filter((t) => t.type === 'ingreso' && isCashTransaction(t))
+        .reduce((acc, t) => acc + (t.amount || 0), 0);
+    const income = fiscalIncome + cashIncome;
     const expense = sumTransactionsByType(paidMonth, 'egreso');
     const net = income - expense;
     const balance = paidUntilReference.reduce((acc, t) => acc + (t.type === 'ingreso' ? t.amount : -t.amount), 0);
@@ -521,12 +527,14 @@ function renderSimpleSummary() {
     if (monthLabelEl) monthLabelEl.textContent = monthLabel;
     if (monthNoteEl) monthNoteEl.textContent = `Lectura simple de lo cobrado, lo pagado y lo pendiente en ${monthLabel}.`;
 
-    const incomeEl = document.getElementById('summary-income');
+    const fiscalIncomeEl = document.getElementById('summary-fiscal-income');
+    const cashIncomeEl = document.getElementById('summary-cash-income');
     const expenseEl = document.getElementById('summary-expense');
     const netEl = document.getElementById('summary-net');
     const balanceEl = document.getElementById('summary-balance');
     const weeksEl = document.getElementById('summary-weeks-cover');
-    if (incomeEl) incomeEl.textContent = formatCurrency(income);
+    if (fiscalIncomeEl) fiscalIncomeEl.textContent = formatCurrency(fiscalIncome);
+    if (cashIncomeEl) cashIncomeEl.textContent = formatCurrency(cashIncome);
     if (expenseEl) expenseEl.textContent = formatCurrency(expense);
     if (netEl) {
         netEl.textContent = formatCurrency(net);
