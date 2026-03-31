@@ -62,6 +62,14 @@ function formatShortDate(date) {
 }
 
 function parseTxDate(value) {
+    if (typeof value === 'string') {
+        const match = value.trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        if (match) {
+            const d = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+            d.setHours(0, 0, 0, 0);
+            return d;
+        }
+    }
     const d = new Date(value);
     d.setHours(0, 0, 0, 0);
     return d;
@@ -500,8 +508,14 @@ function renderSimpleSummary() {
     const cashIncome = paidMonth
         .filter((t) => t.type === 'ingreso' && isCashTransaction(t))
         .reduce((acc, t) => acc + (t.amount || 0), 0);
+    const fiscalExpense = paidMonth
+        .filter((t) => t.type === 'egreso' && !isCashTransaction(t))
+        .reduce((acc, t) => acc + (t.amount || 0), 0);
+    const cashExpense = paidMonth
+        .filter((t) => t.type === 'egreso' && isCashTransaction(t))
+        .reduce((acc, t) => acc + (t.amount || 0), 0);
     const income = fiscalIncome + cashIncome;
-    const expense = sumTransactionsByType(paidMonth, 'egreso');
+    const expense = fiscalExpense + cashExpense;
     const net = income - expense;
     const balance = paidUntilReference.reduce((acc, t) => acc + (t.type === 'ingreso' ? t.amount : -t.amount), 0);
     const weeklyFixed = (state.fixedCosts.payrollWeekly || 0) +
@@ -529,13 +543,15 @@ function renderSimpleSummary() {
 
     const fiscalIncomeEl = document.getElementById('summary-fiscal-income');
     const cashIncomeEl = document.getElementById('summary-cash-income');
-    const expenseEl = document.getElementById('summary-expense');
+    const fiscalExpenseEl = document.getElementById('summary-fiscal-expense');
+    const cashExpenseEl = document.getElementById('summary-cash-expense');
     const netEl = document.getElementById('summary-net');
     const balanceEl = document.getElementById('summary-balance');
     const weeksEl = document.getElementById('summary-weeks-cover');
     if (fiscalIncomeEl) fiscalIncomeEl.textContent = formatCurrency(fiscalIncome);
     if (cashIncomeEl) cashIncomeEl.textContent = formatCurrency(cashIncome);
-    if (expenseEl) expenseEl.textContent = formatCurrency(expense);
+    if (fiscalExpenseEl) fiscalExpenseEl.textContent = formatCurrency(fiscalExpense);
+    if (cashExpenseEl) cashExpenseEl.textContent = formatCurrency(cashExpense);
     if (netEl) {
         netEl.textContent = formatCurrency(net);
         netEl.className = `text-3xl font-black ${net > 0 ? 'text-emerald-600' : net < 0 ? 'text-rose-600' : 'text-slate-900'}`;
@@ -890,7 +906,7 @@ function renderTable() {
     let filtered = [...state.transactions];
     if (dateFilter.active && dateFilter.startDate && dateFilter.endDate) {
         filtered = filtered.filter(t => {
-            const txDate = new Date(t.date);
+            const txDate = parseTxDate(t.date);
             // normalization for date comparison
             const checkDate = new Date(txDate.getFullYear(), txDate.getMonth(), txDate.getDate());
             const start = new Date(dateFilter.startDate.getFullYear(), dateFilter.startDate.getMonth(), dateFilter.startDate.getDate());
@@ -899,7 +915,7 @@ function renderTable() {
         });
     }
 
-    const sorted = filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+    const sorted = filtered.sort((a, b) => parseTxDate(b.date) - parseTxDate(a.date));
 
     if (tableGrouping === 'none') {
         sorted.forEach((t, index) => appendTransactionRow(tbody, t, index, false));
@@ -1335,7 +1351,7 @@ function buildMonthlySeries(range, transactions) {
 }
 
 function getWeekStart(date) {
-    const d = new Date(date);
+    const d = parseTxDate(date);
     const day = d.getDay();
     const diff = day === 0 ? -6 : 1 - day;
     d.setDate(d.getDate() + diff);
