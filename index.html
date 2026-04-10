@@ -377,6 +377,98 @@
                     </div>
                 </div>
 
+                <div class="glass-card p-6 rounded-2xl shadow-sm space-y-6">
+                    <div class="flex flex-col lg:flex-row gap-4 lg:items-center lg:justify-between">
+                        <div>
+                            <h4 class="font-black text-slate-900 flex items-center gap-2">
+                                <i data-lucide="building-2" class="w-4 h-4 text-slate-700"></i>
+                                Reporte para gerencia
+                            </h4>
+                            <p class="text-sm text-slate-500 mt-2">Una lectura directa de lo que entro, lo que salio y en que conceptos se concentro el movimiento del periodo.</p>
+                        </div>
+                        <div class="rounded-2xl bg-slate-900 text-white px-4 py-3 min-w-[220px] shadow-lg">
+                            <div class="text-[10px] uppercase tracking-[0.18em] text-slate-300 font-black">Periodo analizado</div>
+                            <div id="summary-management-period" class="text-base font-black mt-1">Mes actual</div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                        <div class="xl:col-span-1 rounded-2xl border border-sky-100 bg-sky-50/70 p-5">
+                            <div class="text-[10px] uppercase tracking-[0.18em] text-sky-700 font-black">Lectura ejecutiva</div>
+                            <h5 id="summary-management-overview" class="text-2xl font-black text-slate-900 mt-3">Sin movimientos relevantes</h5>
+                            <ul id="summary-management-insights" class="mt-4 space-y-3"></ul>
+                        </div>
+
+                        <div class="xl:col-span-2 grid grid-cols-1 xl:grid-cols-2 gap-6">
+                            <div class="rounded-2xl border border-emerald-100 bg-white overflow-hidden">
+                                <div class="px-5 py-4 border-b border-slate-100">
+                                    <h5 class="font-black text-slate-800">De donde entro el dinero</h5>
+                                    <p class="text-xs text-slate-400 mt-1">Ingresos cobrados del periodo agrupados por concepto.</p>
+                                </div>
+                                <div class="overflow-x-auto">
+                                    <table class="w-full text-left text-sm">
+                                        <thead class="bg-slate-50">
+                                            <tr>
+                                                <th class="px-4 py-3 text-[10px] font-black uppercase text-slate-500">Concepto</th>
+                                                <th class="px-4 py-3 text-[10px] font-black uppercase text-slate-500 text-center">Canal</th>
+                                                <th class="px-4 py-3 text-[10px] font-black uppercase text-slate-500 text-center">Movs</th>
+                                                <th class="px-4 py-3 text-[10px] font-black uppercase text-slate-500 text-right">% del ingreso</th>
+                                                <th class="px-4 py-3 text-[10px] font-black uppercase text-slate-500 text-right">Monto</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="summary-management-income-body"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <div class="rounded-2xl border border-rose-100 bg-white overflow-hidden">
+                                <div class="px-5 py-4 border-b border-slate-100">
+                                    <h5 class="font-black text-slate-800">En que se gasto</h5>
+                                    <p class="text-xs text-slate-400 mt-1">Egresos pagados del periodo agrupados por concepto.</p>
+                                </div>
+                                <div class="overflow-x-auto">
+                                    <table class="w-full text-left text-sm">
+                                        <thead class="bg-slate-50">
+                                            <tr>
+                                                <th class="px-4 py-3 text-[10px] font-black uppercase text-slate-500">Concepto</th>
+                                                <th class="px-4 py-3 text-[10px] font-black uppercase text-slate-500 text-center">Canal</th>
+                                                <th class="px-4 py-3 text-[10px] font-black uppercase text-slate-500 text-center">Movs</th>
+                                                <th class="px-4 py-3 text-[10px] font-black uppercase text-slate-500 text-right">% del gasto</th>
+                                                <th class="px-4 py-3 text-[10px] font-black uppercase text-slate-500 text-right">Monto</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="summary-management-expense-body"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="rounded-2xl border border-slate-200 overflow-hidden bg-white">
+                        <div class="px-5 py-4 border-b border-slate-100">
+                            <h5 class="font-black text-slate-800">Historial por concepto</h5>
+                            <p class="text-xs text-slate-400 mt-1">Cada fila agrupa movimientos realizados del periodo. Puedes expandirla para ver el detalle.</p>
+                        </div>
+                        <div class="overflow-x-auto max-h-[460px]">
+                            <table class="w-full text-left text-sm">
+                                <thead class="bg-slate-50 sticky top-0">
+                                    <tr>
+                                        <th class="px-4 py-3 text-[10px] font-black uppercase text-slate-500">Concepto</th>
+                                        <th class="px-4 py-3 text-[10px] font-black uppercase text-slate-500 text-center">Tipo</th>
+                                        <th class="px-4 py-3 text-[10px] font-black uppercase text-slate-500 text-center">Canal</th>
+                                        <th class="px-4 py-3 text-[10px] font-black uppercase text-slate-500 text-center">Movs</th>
+                                        <th class="px-4 py-3 text-[10px] font-black uppercase text-slate-500">Primera fecha</th>
+                                        <th class="px-4 py-3 text-[10px] font-black uppercase text-slate-500">Ultima fecha</th>
+                                        <th class="px-4 py-3 text-[10px] font-black uppercase text-slate-500 text-right">Total</th>
+                                        <th class="px-4 py-3 text-[10px] font-black uppercase text-slate-500 text-right">Detalle</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="summary-management-history-body" class="divide-y divide-slate-100 bg-white"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="glass-card p-6 rounded-2xl shadow-sm">
                     <div class="flex items-center justify-between gap-4 mb-4">
                         <div>

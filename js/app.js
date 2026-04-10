@@ -15,6 +15,7 @@ let tableGrouping = 'none';
 let groupExpandState = {};
 let transactionSelection = new Set();
 let simpleSummaryMonth = getMonthKey();
+let simpleSummaryHistoryExpandState = {};
 let currentSessionData = null;
 
 // Date Filter State
@@ -57,6 +58,10 @@ function formatCurrency(amount) {
     }).format(amount);
 }
 
+function formatPercent(value) {
+    return `${(value || 0).toFixed(1)}%`;
+}
+
 function formatShortDate(date) {
     return date.toLocaleDateString('es-MX');
 }
@@ -97,8 +102,16 @@ function getTransactionDisplayCategory(transaction) {
     return baseCategory;
 }
 
+function getTransactionConcept(transaction) {
+    return (transaction?.concept || 'Sin concepto').trim() || 'Sin concepto';
+}
+
 function isCashTransaction(transaction) {
     return ((transaction?.category || '').trim() === 'Efectivo');
+}
+
+function getTransactionChannel(transaction) {
+    return isCashTransaction(transaction) ? 'Efectivo' : 'Fiscal';
 }
 
 function getDashboardRange() {
@@ -337,6 +350,7 @@ function showTab(tabId) {
 
 function changeSimpleSummaryMonth(delta) {
     simpleSummaryMonth = shiftMonthKey(simpleSummaryMonth, delta);
+    simpleSummaryHistoryExpandState = {};
     renderSimpleSummary();
 }
 
@@ -436,6 +450,301 @@ function renderSimpleTransactionsTable(transactions) {
     });
 }
 
+function appendTableCell(row, className, text) {
+    const cell = document.createElement('td');
+    cell.className = className;
+    cell.textContent = text;
+    row.appendChild(cell);
+    return cell;
+}
+
+function createBadge(text, className) {
+    const badge = document.createElement('span');
+    badge.className = className;
+    badge.textContent = text;
+    return badge;
+}
+
+function getConceptGroups(transactions, type) {
+    const filtered = transactions.filter((t) => t.type === type);
+    const total = filtered.reduce((acc, t) => acc + (t.amount || 0), 0);
+    const groups = new Map();
+
+    filtered.forEach((transaction) => {
+        const concept = getTransactionConcept(transaction);
+        const channel = getTransactionChannel(transaction);
+        const key = `${type}::${channel}::${concept.toLowerCase()}`;
+
+        if (!groups.has(key)) {
+            groups.set(key, {
+                key,
+                type,
+                concept,
+                channel,
+                amount: 0,
+                count: 0,
+                firstDate: transaction.date,
+                lastDate: transaction.date,
+                transactions: []
+            });
+        }
+
+        const group = groups.get(key);
+        group.amount += transaction.amount || 0;
+        group.count += 1;
+        group.transactions.push(transaction);
+
+        if (parseTxDate(transaction.date) < parseTxDate(group.firstDate)) group.firstDate = transaction.date;
+        if (parseTxDate(transaction.date) > parseTxDate(group.lastDate)) group.lastDate = transaction.date;
+    });
+
+    return Array.from(groups.values())
+        .map((group) => ({
+            ...group,
+            percentage: total > 0 ? (group.amount / total) * 100 : 0,
+            transactions: [...group.transactions].sort((a, b) => parseTxDate(b.date) - parseTxDate(a.date))
+        }))
+        .sort((a, b) => (b.amount - a.amount) || a.concept.localeCompare(b.concept, 'es-MX'));
+}
+
+function buildManagementExecutiveSummary(monthLabel, metrics, incomeGroups, expenseGroups) {
+    if (metrics.movementCount === 0) {
+        return {
+            headline: 'Todavia no hay movimientos realizados',
+            insights: [
+                `En ${monthLabel} no hay ingresos ni egresos marcados como pagados.`,
+                'Cuando se registren cobros o pagos, aqui aparecera una lectura ejecutiva del periodo.',
+                'El bloque mostrara de forma directa de donde entro el dinero y en que conceptos salio.'
+            ]
+        };
+    }
+
+    const topIncome = incomeGroups[0];
+    const topExpense = expenseGroups[0];
+    const netText = metrics.net >= 0
+        ? `Despues de cubrir los gastos del periodo, quedaron ${formatCurrency(metrics.net)} libres.`
+        : `Despues de cubrir los gastos del periodo, faltaron ${formatCurrency(Math.abs(metrics.net))}.`;
+
+    return {
+        headline: metrics.net >= 0
+            ? 'El mes dejo mas entradas que salidas'
+            : metrics.net < 0
+                ? 'El mes tuvo mas salidas que entradas'
+                : 'El mes quedo practicamente parejo',
+        insights: [
+            `En ${monthLabel} entraron ${formatCurrency(metrics.income)}: ${formatCurrency(metrics.fiscalIncome)} se registraron fiscalmente y ${formatCurrency(metrics.cashIncome)} se cobraron en efectivo.`,
+            `En el mismo periodo salieron ${formatCurrency(metrics.expense)}: ${formatCurrency(metrics.fiscalExpense)} se registraron fiscalmente y ${formatCurrency(metrics.cashExpense)} salieron por efectivo.`,
+            netText,
+            topIncome
+                ? `El concepto que mas dinero dejo fue "${topIncome.concept}" con ${formatCurrency(topIncome.amount)} y represento ${formatPercent(topIncome.percentage)} del ingreso del mes.`
+                : 'No hubo un concepto de ingreso dominante en este periodo.',
+            topExpense
+                ? `El gasto mas fuerte fue "${topExpense.concept}" con ${formatCurrency(topExpense.amount)} y represento ${formatPercent(topExpense.percentage)} del gasto del mes.`
+                : 'No hubo un concepto de egreso dominante en este periodo.'
+        ]
+    };
+}
+
+function renderManagementExecutiveSummary(monthLabel, summary) {
+    const periodEl = document.getElementById('summary-management-period');
+    const overviewEl = document.getElementById('summary-management-overview');
+    const insightsEl = document.getElementById('summary-management-insights');
+    if (!periodEl || !overviewEl || !insightsEl) return;
+
+    periodEl.textContent = monthLabel;
+    overviewEl.textContent = summary.headline;
+    insightsEl.innerHTML = '';
+
+    summary.insights.forEach((line) => {
+        const item = document.createElement('li');
+        item.className = 'flex items-start gap-3';
+
+        const dot = document.createElement('span');
+        dot.className = 'mt-2 h-2.5 w-2.5 rounded-full bg-sky-500 shrink-0';
+
+        const text = document.createElement('p');
+        text.className = 'text-sm leading-6 text-slate-600';
+        text.textContent = line;
+
+        item.appendChild(dot);
+        item.appendChild(text);
+        insightsEl.appendChild(item);
+    });
+}
+
+function renderManagementConceptTable(tbodyId, groups, emptyLabel) {
+    const tbody = document.getElementById(tbodyId);
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    if (groups.length === 0) {
+        const row = document.createElement('tr');
+        appendTableCell(row, 'px-4 py-3 text-sm text-slate-400', emptyLabel).colSpan = 5;
+        tbody.appendChild(row);
+        return;
+    }
+
+    groups.forEach((group) => {
+        const row = document.createElement('tr');
+        row.className = 'border-b last:border-b-0';
+
+        const conceptCell = appendTableCell(row, 'px-4 py-3', '');
+        const conceptWrap = document.createElement('div');
+        const conceptTitle = document.createElement('div');
+        conceptTitle.className = 'font-semibold text-slate-800';
+        conceptTitle.textContent = group.concept;
+        const conceptMeta = document.createElement('div');
+        conceptMeta.className = 'text-[11px] text-slate-400 mt-1';
+        conceptMeta.textContent = `${group.count} movimiento${group.count === 1 ? '' : 's'} en el periodo`;
+        conceptWrap.appendChild(conceptTitle);
+        conceptWrap.appendChild(conceptMeta);
+        conceptCell.appendChild(conceptWrap);
+
+        const channelCell = appendTableCell(row, 'px-4 py-3 text-center', '');
+        channelCell.appendChild(createBadge(
+            group.channel,
+            `text-[10px] font-black px-2 py-1 rounded-full ${group.channel === 'Efectivo' ? 'bg-teal-100 text-teal-700' : 'bg-sky-100 text-sky-700'}`
+        ));
+
+        appendTableCell(row, 'px-4 py-3 text-center font-semibold text-slate-600', String(group.count));
+        appendTableCell(row, 'px-4 py-3 text-right font-semibold text-slate-600', formatPercent(group.percentage));
+        appendTableCell(row, `px-4 py-3 text-right font-black ${group.type === 'ingreso' ? 'text-emerald-600' : 'text-rose-600'}`, formatCurrency(group.amount));
+
+        tbody.appendChild(row);
+    });
+}
+
+function renderManagementHistoryTable(groups) {
+    const tbody = document.getElementById('summary-management-history-body');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    if (groups.length === 0) {
+        const row = document.createElement('tr');
+        appendTableCell(row, 'px-4 py-4 text-sm text-slate-400', 'No hay historial realizado por concepto en este periodo.').colSpan = 8;
+        tbody.appendChild(row);
+        return;
+    }
+
+    const sortedGroups = [...groups].sort((a, b) => {
+        const amountDiff = Math.abs(b.amount) - Math.abs(a.amount);
+        if (amountDiff !== 0) return amountDiff;
+        return parseTxDate(b.lastDate) - parseTxDate(a.lastDate);
+    });
+
+    sortedGroups.forEach((group) => {
+        const isExpanded = !!simpleSummaryHistoryExpandState[group.key];
+        const row = document.createElement('tr');
+        row.className = 'border-b border-slate-100 hover:bg-slate-50';
+
+        const conceptCell = appendTableCell(row, 'px-4 py-4', '');
+        const toggle = document.createElement('button');
+        toggle.type = 'button';
+        toggle.className = 'flex items-start gap-3 text-left w-full';
+        toggle.addEventListener('click', () => {
+            simpleSummaryHistoryExpandState[group.key] = !simpleSummaryHistoryExpandState[group.key];
+            renderSimpleSummary();
+        });
+
+        const marker = document.createElement('span');
+        marker.className = `mt-1 inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-black ${isExpanded ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600'}`;
+        marker.textContent = isExpanded ? '−' : '+';
+
+        const textWrap = document.createElement('span');
+        textWrap.className = 'min-w-0';
+        const title = document.createElement('span');
+        title.className = 'block font-semibold text-slate-800';
+        title.textContent = group.concept;
+        const sub = document.createElement('span');
+        sub.className = 'block text-[11px] text-slate-400 mt-1';
+        sub.textContent = isExpanded ? 'Ocultar movimientos del concepto' : 'Ver movimientos del concepto';
+        textWrap.appendChild(title);
+        textWrap.appendChild(sub);
+
+        toggle.appendChild(marker);
+        toggle.appendChild(textWrap);
+        conceptCell.appendChild(toggle);
+
+        const typeCell = appendTableCell(row, 'px-4 py-4 text-center', '');
+        typeCell.appendChild(createBadge(
+            group.type === 'ingreso' ? 'Ingreso' : 'Egreso',
+            `text-[10px] font-black px-2 py-1 rounded-full ${group.type === 'ingreso' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`
+        ));
+
+        const channelCell = appendTableCell(row, 'px-4 py-4 text-center', '');
+        channelCell.appendChild(createBadge(
+            group.channel,
+            `text-[10px] font-black px-2 py-1 rounded-full ${group.channel === 'Efectivo' ? 'bg-teal-100 text-teal-700' : 'bg-sky-100 text-sky-700'}`
+        ));
+
+        appendTableCell(row, 'px-4 py-4 text-center font-semibold text-slate-600', String(group.count));
+        appendTableCell(row, 'px-4 py-4 text-slate-500 font-medium', formatShortDate(parseTxDate(group.firstDate)));
+        appendTableCell(row, 'px-4 py-4 text-slate-500 font-medium', formatShortDate(parseTxDate(group.lastDate)));
+        appendTableCell(row, `px-4 py-4 text-right font-black ${group.type === 'ingreso' ? 'text-emerald-600' : 'text-rose-600'}`, formatCurrency(group.amount));
+        appendTableCell(row, 'px-4 py-4 text-right text-xs font-black text-slate-500', isExpanded ? 'Ocultar' : 'Ver');
+
+        tbody.appendChild(row);
+
+        if (!isExpanded) return;
+
+        const detailRow = document.createElement('tr');
+        detailRow.className = 'bg-slate-50 border-b border-slate-100';
+        const detailCell = document.createElement('td');
+        detailCell.colSpan = 8;
+        detailCell.className = 'px-4 py-4';
+
+        const detailWrap = document.createElement('div');
+        detailWrap.className = 'rounded-2xl border border-slate-200 bg-white overflow-hidden';
+        const detailTableWrap = document.createElement('div');
+        detailTableWrap.className = 'overflow-x-auto';
+        const detailTable = document.createElement('table');
+        detailTable.className = 'w-full text-left text-sm';
+
+        const detailHead = document.createElement('thead');
+        detailHead.className = 'bg-slate-50';
+        detailHead.innerHTML = `
+            <tr>
+                <th class="px-4 py-3 text-[10px] font-black uppercase text-slate-500">Fecha</th>
+                <th class="px-4 py-3 text-[10px] font-black uppercase text-slate-500">Categoria</th>
+                <th class="px-4 py-3 text-[10px] font-black uppercase text-slate-500 text-center">Estado</th>
+                <th class="px-4 py-3 text-[10px] font-black uppercase text-slate-500">Detalle fiscal</th>
+                <th class="px-4 py-3 text-[10px] font-black uppercase text-slate-500 text-right">Monto</th>
+            </tr>
+        `;
+
+        const detailBody = document.createElement('tbody');
+        detailBody.className = 'divide-y divide-slate-100';
+
+        group.transactions.forEach((transaction) => {
+            const detailLine = document.createElement('tr');
+            appendTableCell(detailLine, 'px-4 py-3 text-slate-500 font-medium', formatShortDate(parseTxDate(transaction.date)));
+            appendTableCell(detailLine, 'px-4 py-3 text-slate-700', getTransactionDisplayCategory(transaction));
+
+            const statusCell = appendTableCell(detailLine, 'px-4 py-3 text-center', '');
+            statusCell.appendChild(createBadge(
+                transaction.status || 'Sin estado',
+                `text-[10px] font-black px-2 py-1 rounded-full ${(transaction.status || '').toLowerCase() === 'pagado' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`
+            ));
+
+            const fiscalCell = appendTableCell(detailLine, 'px-4 py-3 text-slate-500', '');
+            fiscalCell.textContent = transaction.subtotal || transaction.iva
+                ? `Sub: ${formatCurrency(transaction.subtotal || 0)} | IVA: ${formatCurrency(transaction.iva || 0)}`
+                : 'Sin subtotal o IVA';
+
+            appendTableCell(detailLine, `px-4 py-3 text-right font-bold ${transaction.type === 'ingreso' ? 'text-emerald-600' : 'text-rose-600'}`, formatCurrency(transaction.amount || 0));
+            detailBody.appendChild(detailLine);
+        });
+
+        detailTable.appendChild(detailHead);
+        detailTable.appendChild(detailBody);
+        detailTableWrap.appendChild(detailTable);
+        detailWrap.appendChild(detailTableWrap);
+        detailCell.appendChild(detailWrap);
+        detailRow.appendChild(detailCell);
+        tbody.appendChild(detailRow);
+    });
+}
+
 function renderSimpleProjection(referenceDate, paidTransactions, startingBalance) {
     const assumption = document.getElementById('summary-projection-assumption');
     const list = document.getElementById('summary-projection-list');
@@ -518,6 +827,23 @@ function renderSimpleSummary() {
     const expense = fiscalExpense + cashExpense;
     const net = income - expense;
     const balance = paidUntilReference.reduce((acc, t) => acc + (t.type === 'ingreso' ? t.amount : -t.amount), 0);
+    const incomeGroups = getConceptGroups(paidMonth, 'ingreso');
+    const expenseGroups = getConceptGroups(paidMonth, 'egreso');
+    const managementSummary = buildManagementExecutiveSummary(
+        monthLabel,
+        {
+            fiscalIncome,
+            cashIncome,
+            fiscalExpense,
+            cashExpense,
+            income,
+            expense,
+            net,
+            movementCount: paidMonth.length
+        },
+        incomeGroups,
+        expenseGroups
+    );
     const weeklyFixed = (state.fixedCosts.payrollWeekly || 0) +
         ((state.fixedCosts.trucksMonthly || 0) +
             (state.fixedCosts.servicesMonthly || 0) +
@@ -586,6 +912,10 @@ function renderSimpleSummary() {
         }
     }
 
+    renderManagementExecutiveSummary(monthLabel, managementSummary);
+    renderManagementConceptTable('summary-management-income-body', incomeGroups, 'No hay ingresos realizados por concepto en este periodo.');
+    renderManagementConceptTable('summary-management-expense-body', expenseGroups, 'No hay egresos realizados por concepto en este periodo.');
+    renderManagementHistoryTable([...incomeGroups, ...expenseGroups]);
     renderSimpleWeeklyTable(monthKey, paidMonth);
     renderSimpleRankingTable('summary-top-income-body', getCategoryRanking(paidMonth, 'ingreso'), 'No hay ingresos cobrados en este mes.');
     renderSimpleRankingTable('summary-top-expense-body', getCategoryRanking(paidMonth, 'egreso'), 'No hay egresos pagados en este mes.');
